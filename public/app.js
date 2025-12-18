@@ -2,7 +2,7 @@
 const API_BASE = window.location.origin;
 let authToken = localStorage.getItem('authToken');
 let currentUser = null;
-let currentBoxId = null; // Track selected box in folder tree
+let currentBoxId = localStorage.getItem('currentBoxId'); // Track selected box in folder tree
 
 // Utility Functions
 function getHeaders() {
@@ -103,7 +103,9 @@ async function register(username, email, password) {
 function logout() {
     authToken = null;
     currentUser = null;
+    currentBoxId = null;
     localStorage.removeItem('authToken');
+    localStorage.removeItem('currentBoxId');
     showAuthScreen();
 }
 
@@ -126,7 +128,27 @@ async function loadData() {
     try {
         const data = await apiCall('/api/boxes');
         renderFolderTree(data.rootBoxes);
-        renderHierarchy(data.rootBoxes);
+        
+        // Restore the last viewed box if it exists
+        if (currentBoxId) {
+            try {
+                await displayBox(currentBoxId);
+                // Highlight the selected box in the tree
+                const selectedNode = document.querySelector(`.tree-node[data-box-id="${currentBoxId}"]`);
+                if (selectedNode) {
+                    selectedNode.classList.add('selected');
+                }
+            } catch (error) {
+                // If the box no longer exists, clear the selection and show hierarchy
+                console.warn('Saved box no longer exists, clearing selection');
+                currentBoxId = null;
+                localStorage.removeItem('currentBoxId');
+                renderHierarchy(data.rootBoxes);
+            }
+        } else {
+            renderHierarchy(data.rootBoxes);
+        }
+        
         await loadStats();
     } catch (error) {
         console.error('Error loading data:', error);
@@ -242,6 +264,7 @@ function attachTreeEventListeners() {
             document.querySelectorAll('.tree-node').forEach(n => n.classList.remove('selected'));
             e.currentTarget.classList.add('selected');
             currentBoxId = boxId;
+            localStorage.setItem('currentBoxId', boxId);
             
             // Load and display the selected box
             await displayBox(boxId);
@@ -654,6 +677,7 @@ async function deleteBox(id) {
         // If we deleted the current box, clear selection
         if (currentBoxId === id) {
             currentBoxId = null;
+            localStorage.removeItem('currentBoxId');
         }
         
         await refreshCurrentView();
@@ -685,12 +709,12 @@ async function createItem(name, description, boxId, amount, boughtAmount, bought
             });
         }
         
-        // Refresh view after creating item
-        if (currentBoxId) {
-            await refreshCurrentView();
-        } else {
-            await loadData();
-        }
+        // Set the current box to the one we just added an item to
+        currentBoxId = boxId;
+        localStorage.setItem('currentBoxId', boxId);
+        
+        // Refresh view to show the new item in the current box
+        await refreshCurrentView();
     } catch (error) {
         throw error;
     }
@@ -773,6 +797,7 @@ function clearSearch() {
     document.getElementById('search-results').style.display = 'none';
     document.getElementById('hierarchy-view').style.display = 'block';
     currentBoxId = null;
+    localStorage.removeItem('currentBoxId');
     const treeNodes = document.querySelectorAll('.tree-node');
     if (treeNodes.length > 0) {
         treeNodes.forEach(n => n.classList.remove('selected'));
