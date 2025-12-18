@@ -14,12 +14,24 @@
             <p class="subtitle">Organize your storage, track your inventory</p>
             
             <div class="auth-tabs">
-                <button class="tab-button active" data-tab="login">Login</button>
-                <button class="tab-button" data-tab="register">Register</button>
+                <button class="tab-button active" data-tab="magic-link">Email Login</button>
+                <button class="tab-button" data-tab="login">Password Login</button>
             </div>
 
-            <!-- Login Form -->
-            <form id="login-form" class="auth-form active">
+            <!-- Magic Link Form (Passwordless) -->
+            <form id="magic-link-form" class="auth-form active">
+                <div class="form-group">
+                    <label for="magic-link-email">Email Address</label>
+                    <input type="email" id="magic-link-email" required placeholder="your@email.com">
+                    <small>We'll send you a login link that expires in 14 days</small>
+                </div>
+                <button type="submit" class="btn btn-primary">Send Magic Link</button>
+                <div id="magic-link-message" class="success-message"></div>
+                <div id="magic-link-error" class="error-message"></div>
+            </form>
+
+            <!-- Login Form (Legacy Password-based) -->
+            <form id="login-form" class="auth-form">
                 <div class="form-group">
                     <label for="login-username">Username</label>
                     <input type="text" id="login-username" required>
@@ -30,25 +42,6 @@
                 </div>
                 <button type="submit" class="btn btn-primary">Login</button>
                 <div id="login-error" class="error-message"></div>
-            </form>
-
-            <!-- Register Form -->
-            <form id="register-form" class="auth-form">
-                <div class="form-group">
-                    <label for="register-username">Username</label>
-                    <input type="text" id="register-username" required>
-                </div>
-                <div class="form-group">
-                    <label for="register-email">Email</label>
-                    <input type="email" id="register-email" required>
-                </div>
-                <div class="form-group">
-                    <label for="register-password">Password</label>
-                    <input type="password" id="register-password" required minlength="6">
-                    <small>At least 6 characters</small>
-                </div>
-                <button type="submit" class="btn btn-primary">Register</button>
-                <div id="register-error" class="error-message"></div>
             </form>
         </div>
     </div>

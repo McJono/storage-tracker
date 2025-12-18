@@ -48,6 +48,28 @@ async function login(username, password) {
     return data;
 }
 
+async function requestMagicLink(email) {
+    const data = await apiCall('/api/auth/request-magic-link', {
+        method: 'POST',
+        body: JSON.stringify({ email })
+    });
+    
+    return data;
+}
+
+async function verifyMagicLink(token) {
+    const data = await apiCall('/api/auth/verify-magic-link', {
+        method: 'POST',
+        body: JSON.stringify({ token })
+    });
+    
+    authToken = data.token;
+    localStorage.setItem('authToken', authToken);
+    currentUser = data.user;
+    
+    return data;
+}
+
 async function register(username, email, password) {
     const data = await apiCall('/api/auth/register', {
         method: 'POST',
@@ -655,6 +677,29 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
     
+    // Magic Link form (Passwordless login)
+    document.getElementById('magic-link-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const errorDiv = document.getElementById('magic-link-error');
+        const messageDiv = document.getElementById('magic-link-message');
+        errorDiv.textContent = '';
+        errorDiv.classList.remove('show');
+        messageDiv.textContent = '';
+        messageDiv.classList.remove('show');
+        
+        const email = document.getElementById('magic-link-email').value;
+        
+        try {
+            const result = await requestMagicLink(email);
+            messageDiv.textContent = result.message || 'Magic link sent! Check your email to log in.';
+            messageDiv.classList.add('show');
+            document.getElementById('magic-link-email').value = '';
+        } catch (error) {
+            errorDiv.textContent = error.message;
+            errorDiv.classList.add('show');
+        }
+    });
+    
     // Login form
     document.getElementById('login-form').addEventListener('submit', async (e) => {
         e.preventDefault();
@@ -800,6 +845,24 @@ document.addEventListener('DOMContentLoaded', () => {
             e.target.classList.remove('show');
         }
     });
+    
+    // Check for magic link token in URL hash
+    const hash = window.location.hash;
+    if (hash && hash.startsWith('#token=')) {
+        const token = decodeURIComponent(hash.substring(7));
+        window.location.hash = ''; // Clear the hash
+        
+        // Verify the magic link token
+        verifyMagicLink(token)
+            .then(() => {
+                showAppScreen();
+            })
+            .catch((error) => {
+                alert('Login failed: ' + error.message);
+                showAuthScreen();
+            });
+        return; // Skip normal auth check
+    }
     
     // Check if user is already logged in
     if (authToken) {
