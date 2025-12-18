@@ -97,6 +97,13 @@
                         </div>
                     </div>
 
+                    <div class="family-sharing-container">
+                        <h3>Family Sharing</h3>
+                        <div id="family-sharing-content">
+                            <button id="manage-sharing-btn" class="btn btn-secondary btn-full">Manage Sharing</button>
+                        </div>
+                    </div>
+
                     <div class="actions-container">
                         <button id="create-box-btn" class="btn btn-primary btn-full">+ New Box</button>
                         <button id="refresh-btn" class="btn btn-secondary btn-full">⟳ Refresh</button>
@@ -197,6 +204,47 @@
                 </div>
                 <div id="item-error" class="error-message"></div>
             </form>
+        </div>
+    </div>
+
+    <!-- Modal for Managing Family Sharing -->
+    <div id="sharing-modal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>Family Sharing</h2>
+            
+            <!-- Pending Invitations -->
+            <div id="pending-invitations-section" class="sharing-section" style="display: none;">
+                <h3>Pending Invitations</h3>
+                <div id="pending-invitations-list"></div>
+            </div>
+
+            <!-- Shared With (Outgoing) -->
+            <div id="shared-with-section" class="sharing-section">
+                <h3>Sharing With</h3>
+                <div id="shared-with-list" class="sharing-list">
+                    <p class="empty-sharing">You haven't shared your account with anyone yet.</p>
+                </div>
+                <form id="share-form">
+                    <div class="form-group">
+                        <label for="share-email">Share with Email</label>
+                        <input type="email" id="share-email" placeholder="family@example.com" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Send Invitation</button>
+                    <div id="share-error" class="error-message"></div>
+                    <div id="share-success" class="success-message"></div>
+                </form>
+            </div>
+
+            <!-- Sharing From (Incoming) -->
+            <div id="shared-from-section" class="sharing-section" style="display: none;">
+                <h3>Sharing Account From</h3>
+                <div id="shared-from-list" class="sharing-list"></div>
+            </div>
+
+            <div class="modal-actions">
+                <button type="button" class="btn btn-secondary close-modal">Close</button>
+            </div>
         </div>
     </div>
 

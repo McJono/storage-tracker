@@ -118,6 +118,7 @@ function showAppScreen() {
     document.getElementById('app-screen').classList.add('active');
     document.getElementById('user-display').textContent = `Hello, ${currentUser.username}!`;
     loadData();
+    loadShares(); // Load family sharing data
 }
 
 // Data Loading
@@ -376,6 +377,183 @@ function calculateBoxProfitLoss(box) {
         total += calculateBoxProfitLoss(nestedBox);
     });
     return total;
+}
+
+// Family Sharing Functions
+async function loadShares() {
+    try {
+        const shares = await apiCall('/api/shares');
+        displayShares(shares);
+        updateSharingSummary(shares);
+    } catch (error) {
+        console.error('Error loading shares:', error);
+    }
+}
+
+function displayShares(shares) {
+    // Display pending invitations
+    const pendingSection = document.getElementById('pending-invitations-section');
+    const pendingList = document.getElementById('pending-invitations-list');
+    
+    if (shares.pending && shares.pending.length > 0) {
+        pendingSection.style.display = 'block';
+        pendingList.innerHTML = shares.pending.map(share => `
+            <div class="sharing-item">
+                <div class="sharing-item-info">
+                    <div class="sharing-item-email">${share.ownerEmail || share.ownerUsername}</div>
+                    <div class="sharing-item-status pending">Pending invitation</div>
+                </div>
+                <div class="sharing-item-actions">
+                    <button class="btn btn-small btn-accept" onclick="acceptShare('${share.id}')">Accept</button>
+                    <button class="btn btn-small btn-reject" onclick="rejectShare('${share.id}')">Reject</button>
+                </div>
+            </div>
+        `).join('');
+    } else {
+        pendingSection.style.display = 'none';
+    }
+    
+    // Display outgoing shares (people you're sharing with)
+    const sharedWithList = document.getElementById('shared-with-list');
+    if (shares.outgoing && shares.outgoing.length > 0) {
+        sharedWithList.innerHTML = shares.outgoing.map(share => {
+            const statusText = share.status === 'pending' ? 'Invitation sent' : 'Active';
+            const statusClass = share.status === 'pending' ? 'pending' : 'accepted';
+            return `
+                <div class="sharing-item">
+                    <div class="sharing-item-info">
+                        <div class="sharing-item-email">${share.sharedWithEmail}</div>
+                        <div class="sharing-item-status ${statusClass}">${statusText}</div>
+                    </div>
+                    <div class="sharing-item-actions">
+                        <button class="btn btn-small btn-remove" onclick="removeShare('${share.id}')">Remove</button>
+                    </div>
+                </div>
+            `;
+        }).join('');
+    } else {
+        sharedWithList.innerHTML = '<p class="empty-sharing">You haven\'t shared your account with anyone yet.</p>';
+    }
+    
+    // Display incoming shares (accounts you're sharing from)
+    const sharedFromSection = document.getElementById('shared-from-section');
+    const sharedFromList = document.getElementById('shared-from-list');
+    
+    if (shares.incoming && shares.incoming.length > 0) {
+        sharedFromSection.style.display = 'block';
+        sharedFromList.innerHTML = shares.incoming.map(share => `
+            <div class="sharing-item">
+                <div class="sharing-item-info">
+                    <div class="sharing-item-email">${share.ownerEmail || share.ownerUsername}</div>
+                    <div class="sharing-item-status accepted">Sharing this account</div>
+                </div>
+                <div class="sharing-item-actions">
+                    <button class="btn btn-small btn-remove" onclick="removeShare('${share.id}')">Stop Sharing</button>
+                </div>
+            </div>
+        `).join('');
+    } else {
+        sharedFromSection.style.display = 'none';
+    }
+}
+
+function updateSharingSummary(shares) {
+    const sharingContent = document.getElementById('family-sharing-content');
+    const totalSharing = (shares.outgoing?.length || 0) + (shares.incoming?.length || 0);
+    const pendingCount = shares.pending?.length || 0;
+    
+    if (totalSharing > 0 || pendingCount > 0) {
+        let summaryText = '';
+        if (shares.incoming && shares.incoming.length > 0) {
+            summaryText = `Sharing from: ${shares.incoming[0].ownerEmail}`;
+        } else if (shares.outgoing && shares.outgoing.length > 0) {
+            summaryText = `Sharing with ${shares.outgoing.length} ${shares.outgoing.length === 1 ? 'person' : 'people'}`;
+        }
+        
+        sharingContent.innerHTML = `
+            <div style="font-size: 0.875rem; margin-bottom: 0.5rem;">${summaryText}</div>
+            ${pendingCount > 0 ? `<div style="font-size: 0.875rem; color: #f39c12; margin-bottom: 0.5rem;">${pendingCount} pending ${pendingCount === 1 ? 'invitation' : 'invitations'}</div>` : ''}
+            <button id="manage-sharing-btn" class="btn btn-secondary btn-full">Manage Sharing</button>
+        `;
+    } else {
+        sharingContent.innerHTML = '<button id="manage-sharing-btn" class="btn btn-secondary btn-full">Manage Sharing</button>';
+    }
+    
+    // Re-attach event listener
+    document.getElementById('manage-sharing-btn').addEventListener('click', openSharingModal);
+}
+
+async function createShare(email) {
+    try {
+        const share = await apiCall('/api/shares', {
+            method: 'POST',
+            body: JSON.stringify({ email })
+        });
+        
+        document.getElementById('share-success').textContent = 'Invitation sent successfully!';
+        document.getElementById('share-success').classList.add('show');
+        document.getElementById('share-error').textContent = '';
+        document.getElementById('share-email').value = '';
+        
+        setTimeout(() => {
+            document.getElementById('share-success').classList.remove('show');
+        }, 3000);
+        
+        await loadShares();
+    } catch (error) {
+        document.getElementById('share-error').textContent = error.message;
+        document.getElementById('share-success').classList.remove('show');
+    }
+}
+
+async function acceptShare(shareId) {
+    try {
+        await apiCall(`/api/shares/${shareId}/accept`, {
+            method: 'POST'
+        });
+        
+        await loadShares();
+        await loadData(); // Reload data as we now have access to shared storage
+        alert('Share accepted! You now have access to the shared storage.');
+    } catch (error) {
+        alert('Error accepting share: ' + error.message);
+    }
+}
+
+async function rejectShare(shareId) {
+    try {
+        await apiCall(`/api/shares/${shareId}/reject`, {
+            method: 'POST'
+        });
+        
+        await loadShares();
+        alert('Share rejected.');
+    } catch (error) {
+        alert('Error rejecting share: ' + error.message);
+    }
+}
+
+async function removeShare(shareId) {
+    if (!confirm('Are you sure you want to remove this share? This action cannot be undone.')) {
+        return;
+    }
+    
+    try {
+        await apiCall(`/api/shares/${shareId}`, {
+            method: 'DELETE'
+        });
+        
+        await loadShares();
+        await loadData(); // Reload data as storage access may have changed
+        alert('Share removed successfully.');
+    } catch (error) {
+        alert('Error removing share: ' + error.message);
+    }
+}
+
+function openSharingModal() {
+    loadShares();
+    document.getElementById('sharing-modal').classList.add('show');
 }
 
 // Event Listeners
@@ -809,6 +987,9 @@ document.addEventListener('DOMContentLoaded', () => {
     // Create box button
     document.getElementById('create-box-btn').addEventListener('click', () => openBoxModal());
     
+    // Manage sharing button (initialized later after loading shares)
+    document.getElementById('manage-sharing-btn').addEventListener('click', openSharingModal);
+    
     // Refresh button
     document.getElementById('refresh-btn').addEventListener('click', () => {
         clearSearch();
@@ -893,6 +1074,13 @@ document.addEventListener('DOMContentLoaded', () => {
             errorDiv.textContent = error.message;
             errorDiv.classList.add('show');
         }
+    });
+    
+    // Share form handler
+    document.getElementById('share-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const email = document.getElementById('share-email').value;
+        await createShare(email);
     });
     
     // Modal close buttons
