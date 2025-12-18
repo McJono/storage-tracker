@@ -719,25 +719,8 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
     
-    // Register form
-    document.getElementById('register-form').addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const errorDiv = document.getElementById('register-error');
-        errorDiv.textContent = '';
-        errorDiv.classList.remove('show');
-        
-        const username = document.getElementById('register-username').value;
-        const email = document.getElementById('register-email').value;
-        const password = document.getElementById('register-password').value;
-        
-        try {
-            await register(username, email, password);
-            showAppScreen();
-        } catch (error) {
-            errorDiv.textContent = error.message;
-            errorDiv.classList.add('show');
-        }
-    });
+    // Register form - removed because register form no longer exists in HTML
+    // Registration is available via the API endpoint /api/auth/register if needed
     
     // Logout
     document.getElementById('logout-btn').addEventListener('click', logout);

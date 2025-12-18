@@ -22,10 +22,13 @@ body {
 /* Auth Screen */
 #auth-screen {
     min-height: 100vh;
-    display: flex;
     align-items: center;
     justify-content: center;
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+#auth-screen.active {
+    display: flex;
 }
 
 .auth-container {
@@ -195,8 +198,11 @@ body {
 /* App Screen */
 #app-screen {
     min-height: 100vh;
-    display: flex;
     flex-direction: column;
+}
+
+#app-screen.active {
+    display: flex;
 }
 
 .app-header {
