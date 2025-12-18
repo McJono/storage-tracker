@@ -1,0 +1,29 @@
+{
+  "name": "storage-tracker",
+  "version": "1.0.0",
+  "description": "A quick storage tracker using a hierarchy of storage boxes.",
+  "main": "index.js",
+  "bin": {
+    "storage-tracker": "./index.js"
+  },
+  "scripts": {
+    "start": "node index.js",
+    "demo": "node demo.js",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage"
+  },
+  "keywords": [
+    "storage",
+    "tracker",
+    "organization",
+    "inventory",
+    "boxes",
+    "hierarchical"
+  ],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "jest": "^30.2.0"
+  }
+}
