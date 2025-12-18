@@ -23,7 +23,8 @@ function printBox(box, indent = 0) {
   
   // Print items
   for (const item of box.items) {
-    console.log(`${prefix}  📌 ${item.name} (ID: ${item.id})`);
+    const quantityPrefix = item.amount > 0 ? `${item.amount} × ` : '';
+    console.log(`${prefix}  📌 ${quantityPrefix}${item.name} (ID: ${item.id})`);
     if (item.description) {
       console.log(`${prefix}     ${item.description}`);
     }
@@ -304,7 +305,8 @@ async function processCommand(line) {
         const item = tracker.findItem(id);
         if (item) {
           console.log('\nFound item:');
-          console.log(`📌 ${item.name} (ID: ${item.id})`);
+          const quantityPrefix = item.amount > 0 ? `${item.amount} × ` : '';
+          console.log(`📌 ${quantityPrefix}${item.name} (ID: ${item.id})`);
           if (item.description) {
             console.log(`   ${item.description}`);
           }
@@ -340,7 +342,8 @@ async function processCommand(line) {
         if (results.items.length > 0) {
           console.log('\nItems:');
           results.items.forEach(item => {
-            console.log(`  📌 ${item.name} (ID: ${item.id})`);
+            const quantityPrefix = item.amount > 0 ? `${item.amount} × ` : '';
+            console.log(`  📌 ${quantityPrefix}${item.name} (ID: ${item.id})`);
           });
         }
         

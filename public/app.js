@@ -331,7 +331,7 @@ function renderItem(item) {
             <div class="item-header">
                 <div class="item-name">
                     <span>📌</span>
-                    <span>${escapeHtml(item.name)}${item.amount > 0 ? ` (Qty: ${item.amount})` : ''}</span>
+                    <span>${item.amount > 0 ? `${item.amount} × ` : ''}${escapeHtml(item.name)}</span>
                 </div>
                 <div class="item-actions">
                     <button class="btn btn-secondary btn-edit-item" data-item-id="${item.id}">Edit</button>

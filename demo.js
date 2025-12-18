@@ -105,7 +105,8 @@ async function runDemo() {
     
     // Print items
     for (const item of box.items) {
-      console.log(`${prefix}  📌 ${item.name}`);
+      const quantityPrefix = item.amount > 0 ? `${item.amount} × ` : '';
+      console.log(`${prefix}  📌 ${quantityPrefix}${item.name}`);
       if (item.description) {
         console.log(`${prefix}     ${item.description}`);
       }
@@ -146,7 +147,8 @@ async function runDemo() {
   const searchResults = tracker.search('hammer');
   console.log(`   Search results for "hammer":`);
   searchResults.items.forEach(item => {
-    console.log(`     📌 ${item.name} (ID: ${item.id})`);
+    const quantityPrefix = item.amount > 0 ? `${item.amount} × ` : '';
+    console.log(`     📌 ${quantityPrefix}${item.name} (ID: ${item.id})`);
   });
 
   console.log();
