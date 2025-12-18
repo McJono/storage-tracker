@@ -123,19 +123,28 @@ app.post('/api/auth/verify-magic-link', async (req, res) => {
     const { token } = req.body;
 
     if (!token) {
+      console.warn('Token verification failed: No token provided');
       return res.status(400).json({ error: 'Token is required' });
+    }
+
+    // Validate token format (should be 64 character hex string)
+    if (!/^[a-f0-9]{64}$/i.test(token)) {
+      console.warn('Token verification failed: Invalid token format', { token: token.substring(0, 10) + '...' });
+      return res.status(400).json({ error: 'Invalid token format' });
     }
 
     // Verify token
     const result = tokenManager.verifyToken(token);
     
     if (!result.valid) {
+      console.warn('Token verification failed:', result.error, { token: token.substring(0, 10) + '...' });
       return res.status(401).json({ error: result.error });
     }
 
     // Get user
     const user = userManager.findUserById(result.userId);
     if (!user) {
+      console.error('Token verification failed: User not found', { userId: result.userId });
       return res.status(404).json({ error: 'User not found' });
     }
 
@@ -145,6 +154,7 @@ app.post('/api/auth/verify-magic-link', async (req, res) => {
     // Generate JWT token
     const jwtToken = generateToken(user);
 
+    console.log('Magic link verification successful', { email: user.email });
     res.json({
       message: 'Login successful',
       user: user.toJSON(),
@@ -254,6 +264,7 @@ app.get('/auth/verify', (req, res) => {
     <html>
       <head>
         <title>Verifying...</title>
+        <meta http-equiv="refresh" content="5;url=/#token=${encodeURIComponent(token)}">
         <style>
           body { 
             font-family: Arial, sans-serif; 
@@ -274,12 +285,21 @@ app.get('/auth/verify', (req, res) => {
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
           }
+          .fallback-link {
+            margin-top: 30px;
+            color: #007bff;
+            text-decoration: none;
+          }
+          .fallback-link:hover {
+            text-decoration: underline;
+          }
         </style>
       </head>
       <body>
         <h1>Verifying your login...</h1>
         <div class="spinner"></div>
         <p>Please wait while we log you in.</p>
+        <p><small>If you are not redirected automatically, <a href="/#token=${encodeURIComponent(token)}" class="fallback-link">click here</a>.</small></p>
         <script>
           // Redirect to main page with token in hash
           window.location.href = '/#token=' + encodeURIComponent('${token}');
