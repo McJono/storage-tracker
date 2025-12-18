@@ -428,7 +428,8 @@ async function createItem(name, description, boxId, amount, boughtAmount, bought
         });
         
         // Update financial data if provided
-        if (amount || boughtAmount || boughtPrice || soldAmount || soldPrice) {
+        const hasFinancialData = amount !== '' || boughtAmount !== '' || boughtPrice !== '' || soldAmount !== '' || soldPrice !== '';
+        if (hasFinancialData) {
             await apiCall(`/api/items/${item.id}`, {
                 method: 'PUT',
                 body: JSON.stringify({ 
