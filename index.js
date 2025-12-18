@@ -12,6 +12,14 @@ const rl = readline.createInterface({
 });
 
 /**
+ * Format item name with quantity prefix
+ */
+function formatItemName(item) {
+  const quantityPrefix = item.amount > 0 ? `${item.amount} × ` : '';
+  return `${quantityPrefix}${item.name}`;
+}
+
+/**
  * Print box hierarchy
  */
 function printBox(box, indent = 0) {
@@ -23,7 +31,7 @@ function printBox(box, indent = 0) {
   
   // Print items
   for (const item of box.items) {
-    console.log(`${prefix}  📌 ${item.name} (ID: ${item.id})`);
+    console.log(`${prefix}  📌 ${formatItemName(item)} (ID: ${item.id})`);
     if (item.description) {
       console.log(`${prefix}     ${item.description}`);
     }
@@ -304,7 +312,7 @@ async function processCommand(line) {
         const item = tracker.findItem(id);
         if (item) {
           console.log('\nFound item:');
-          console.log(`📌 ${item.name} (ID: ${item.id})`);
+          console.log(`📌 ${formatItemName(item)} (ID: ${item.id})`);
           if (item.description) {
             console.log(`   ${item.description}`);
           }
@@ -340,7 +348,7 @@ async function processCommand(line) {
         if (results.items.length > 0) {
           console.log('\nItems:');
           results.items.forEach(item => {
-            console.log(`  📌 ${item.name} (ID: ${item.id})`);
+            console.log(`  📌 ${formatItemName(item)} (ID: ${item.id})`);
           });
         }
         

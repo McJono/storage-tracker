@@ -16,6 +16,14 @@ async function runDemo() {
   // Create a new tracker
   const tracker = new StorageTracker(path.join(__dirname, 'data', 'demo-storage.json'));
 
+  /**
+   * Format item name with quantity prefix
+   */
+  function formatItemName(item) {
+    const quantityPrefix = item.amount > 0 ? `${item.amount} × ` : '';
+    return `${quantityPrefix}${item.name}`;
+  }
+
   console.log('1. Creating storage hierarchy...\n');
 
   // Create root boxes
@@ -105,7 +113,7 @@ async function runDemo() {
     
     // Print items
     for (const item of box.items) {
-      console.log(`${prefix}  📌 ${item.name}`);
+      console.log(`${prefix}  📌 ${formatItemName(item)}`);
       if (item.description) {
         console.log(`${prefix}     ${item.description}`);
       }
@@ -146,7 +154,7 @@ async function runDemo() {
   const searchResults = tracker.search('hammer');
   console.log(`   Search results for "hammer":`);
   searchResults.items.forEach(item => {
-    console.log(`     📌 ${item.name} (ID: ${item.id})`);
+    console.log(`     📌 ${formatItemName(item)} (ID: ${item.id})`);
   });
 
   console.log();
