@@ -1,9 +1,14 @@
-// Load environment variables from .env file if dotenv is available
+// Load environment variables from .env file
+// Note: dotenv is required - if you get an error here, run 'npm install'
 try {
   require('dotenv').config();
 } catch (error) {
-  // dotenv not installed - skip loading .env file
-  // This allows the server to run even without npm install
+  if (error.code === 'MODULE_NOT_FOUND') {
+    console.error('Error: dotenv module not found. Please run "npm install" to install dependencies.');
+    console.error('This is required after pulling new code changes.');
+    process.exit(1);
+  }
+  throw error;
 }
 const express = require('express');
 const cors = require('cors');
