@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Storage Tracker</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <!-- Login/Register Screen -->
+    <div id="auth-screen" class="screen active">
+        <div class="auth-container">
+            <h1>📦 Storage Tracker</h1>
+            <p class="subtitle">Organize your storage, track your inventory</p>
+            
+            <div class="auth-tabs">
+                <button class="tab-button active" data-tab="login">Login</button>
+                <button class="tab-button" data-tab="register">Register</button>
+            </div>
+
+            <!-- Login Form -->
+            <form id="login-form" class="auth-form active">
+                <div class="form-group">
+                    <label for="login-username">Username</label>
+                    <input type="text" id="login-username" required>
+                </div>
+                <div class="form-group">
+                    <label for="login-password">Password</label>
+                    <input type="password" id="login-password" required>
+                </div>
+                <button type="submit" class="btn btn-primary">Login</button>
+                <div id="login-error" class="error-message"></div>
+            </form>
+
+            <!-- Register Form -->
+            <form id="register-form" class="auth-form">
+                <div class="form-group">
+                    <label for="register-username">Username</label>
+                    <input type="text" id="register-username" required>
+                </div>
+                <div class="form-group">
+                    <label for="register-email">Email</label>
+                    <input type="email" id="register-email" required>
+                </div>
+                <div class="form-group">
+                    <label for="register-password">Password</label>
+                    <input type="password" id="register-password" required minlength="6">
+                    <small>At least 6 characters</small>
+                </div>
+                <button type="submit" class="btn btn-primary">Register</button>
+                <div id="register-error" class="error-message"></div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Main Application Screen -->
+    <div id="app-screen" class="screen">
+        <!-- Header -->
+        <header class="app-header">
+            <div class="header-left">
+                <h1>📦 Storage Tracker</h1>
+            </div>
+            <div class="header-right">
+                <span id="user-display" class="user-display"></span>
+                <button id="logout-btn" class="btn btn-secondary">Logout</button>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <div class="app-content">
+            <!-- Sidebar -->
+            <aside class="sidebar">
+                <div class="search-container">
+                    <input type="text" id="search-input" placeholder="Search boxes and items...">
+                    <button id="search-btn" class="btn btn-icon">🔍</button>
+                </div>
+
+                <div class="stats-container">
+                    <h3>Statistics</h3>
+                    <div class="stat-item">
+                        <span class="stat-label">Total Boxes:</span>
+                        <span id="stat-boxes" class="stat-value">0</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Total Items:</span>
+                        <span id="stat-items" class="stat-value">0</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Root Boxes:</span>
+                        <span id="stat-root" class="stat-value">0</span>
+                    </div>
+                </div>
+
+                <div class="actions-container">
+                    <button id="create-box-btn" class="btn btn-primary btn-full">+ New Box</button>
+                    <button id="refresh-btn" class="btn btn-secondary btn-full">⟳ Refresh</button>
+                </div>
+            </aside>
+
+            <!-- Main Area -->
+            <main class="main-area">
+                <div id="hierarchy-view" class="hierarchy-view">
+                    <div class="empty-state">
+                        <p>No storage boxes yet. Create your first box to get started!</p>
+                    </div>
+                </div>
+
+                <div id="search-results" class="search-results" style="display: none;">
+                    <h2>Search Results</h2>
+                    <div id="search-results-content"></div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- Modal for Creating/Editing Box -->
+    <div id="box-modal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2 id="box-modal-title">Create Box</h2>
+            <form id="box-form">
+                <input type="hidden" id="box-id">
+                <div class="form-group">
+                    <label for="box-name">Name *</label>
+                    <input type="text" id="box-name" required>
+                </div>
+                <div class="form-group">
+                    <label for="box-description">Description</label>
+                    <textarea id="box-description" rows="3"></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="box-parent">Parent Box (optional)</label>
+                    <select id="box-parent">
+                        <option value="">-- Root Level --</option>
+                    </select>
+                </div>
+                <div class="modal-actions">
+                    <button type="submit" class="btn btn-primary">Save</button>
+                    <button type="button" class="btn btn-secondary close-modal">Cancel</button>
+                </div>
+                <div id="box-error" class="error-message"></div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal for Creating/Editing Item -->
+    <div id="item-modal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2 id="item-modal-title">Create Item</h2>
+            <form id="item-form">
+                <input type="hidden" id="item-id">
+                <input type="hidden" id="item-box-id">
+                <div class="form-group">
+                    <label for="item-name">Name *</label>
+                    <input type="text" id="item-name" required>
+                </div>
+                <div class="form-group">
+                    <label for="item-description">Description</label>
+                    <textarea id="item-description" rows="2"></textarea>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="item-bought-amount">Bought Amount</label>
+                        <input type="number" id="item-bought-amount" min="0" step="0.01">
+                    </div>
+                    <div class="form-group">
+                        <label for="item-bought-price">Bought Price ($)</label>
+                        <input type="number" id="item-bought-price" min="0" step="0.01">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="item-sold-amount">Sold Amount</label>
+                        <input type="number" id="item-sold-amount" min="0" step="0.01">
+                    </div>
+                    <div class="form-group">
+                        <label for="item-sold-price">Sold Price ($)</label>
+                        <input type="number" id="item-sold-price" min="0" step="0.01">
+                    </div>
+                </div>
+                <div class="modal-actions">
+                    <button type="submit" class="btn btn-primary">Save</button>
+                    <button type="button" class="btn btn-secondary close-modal">Cancel</button>
+                </div>
+                <div id="item-error" class="error-message"></div>
+            </form>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>

@@ -4,13 +4,23 @@ A hierarchical storage location tracker built with Node.js that allows you to or
 
 ## Features
 
+### Core Features
 - 📦 **Nested Storage Hierarchy**: Create boxes within boxes for unlimited organizational depth
 - 📌 **Item Tracking**: Add items to any box with detailed descriptions
 - 💰 **Financial Tracking**: Track bought amount, bought price, sold amount, and sold price
 - 📊 **Automatic Calculations**: Automatically calculates average sold price per unit and profit/loss
 - 🔍 **Search Functionality**: Quickly find boxes and items by name or description
 - 💾 **Data Persistence**: Save and load your storage data to/from JSON files
+
+### Interface Options
+- 🌐 **Web Interface**: Modern, responsive web UI with authentication
 - 🖥️ **Interactive CLI**: Easy-to-use command-line interface
+
+### Multi-User Support
+- 👥 **User Management**: Register and manage multiple users
+- 🔐 **Secure Authentication**: JWT token-based authentication
+- 🔒 **Data Isolation**: Each user has their own private storage data
+- 🛡️ **Password Security**: Bcrypt password hashing
 
 ## Installation
 
@@ -19,6 +29,25 @@ npm install
 ```
 
 ## Usage
+
+### Web Interface (Recommended)
+
+Start the web server:
+
+```bash
+npm run server
+```
+
+Then open your browser to `http://localhost:3000`
+
+**Features:**
+- User registration and login
+- Visual hierarchy of boxes and items
+- Search functionality
+- Real-time statistics
+- Easy box/item management
+
+### CLI Interface
 
 Start the interactive CLI:
 
@@ -170,6 +199,14 @@ Goodbye!
 
 ## Data Model
 
+### User
+- `id` - Unique identifier
+- `username` - Unique username
+- `email` - User email address
+- `passwordHash` - Bcrypt hashed password
+- `createdAt` - Creation timestamp
+- `updatedAt` - Last update timestamp
+
 ### Box
 - `id` - Unique identifier
 - `name` - Box name
@@ -191,6 +228,39 @@ Goodbye!
 - `profitLoss` - Calculated: soldPrice - (boughtAmount * boughtPrice)
 - `createdAt` - Creation timestamp
 - `updatedAt` - Last update timestamp
+
+## Web API
+
+The web server exposes a RESTful API for all operations:
+
+### Authentication
+- `POST /api/auth/register` - Register a new user
+- `POST /api/auth/login` - Login and get JWT token
+- `GET /api/auth/me` - Get current user info
+
+### Boxes
+- `GET /api/boxes` - Get all boxes for current user
+- `POST /api/boxes` - Create a new box
+- `GET /api/boxes/:id` - Get a specific box
+- `PUT /api/boxes/:id` - Update a box
+- `DELETE /api/boxes/:id` - Delete a box
+- `POST /api/boxes/:id/move` - Move box to new parent
+
+### Items
+- `POST /api/items` - Create a new item
+- `GET /api/items/:id` - Get a specific item
+- `PUT /api/items/:id` - Update an item
+- `DELETE /api/items/:id` - Delete an item
+- `POST /api/items/:id/move` - Move item to new box
+
+### Search & Stats
+- `GET /api/search?q=query` - Search boxes and items
+- `GET /api/stats` - Get storage statistics
+
+All API requests (except auth) require a JWT token in the `Authorization` header:
+```
+Authorization: Bearer <your-token>
+```
 
 ## Development
 
@@ -214,16 +284,36 @@ npm run test:coverage
 
 ## Data Storage
 
-By default, data is stored in `data/storage.json`. This file is automatically created when you save your data and loaded when you start the application.
+### Web Mode
+- User data: `data/users.json`
+- Storage data: `data/multi-user-storage.json`
+
+### CLI Mode
+- Storage data: `data/storage.json`
+
+All data files are automatically created and loaded as needed.
 
 ## Architecture
 
 The project follows a clean, modular architecture:
 
+### Backend
+- `src/User.js` - User model with authentication
+- `src/UserManager.js` - User management and authentication
 - `src/Item.js` - Item class with financial tracking
 - `src/Box.js` - Box class with nesting capabilities
-- `src/StorageTracker.js` - Main tracker with CRUD operations
+- `src/StorageTracker.js` - Single-user storage tracker
+- `src/MultiUserStorageTracker.js` - Multi-user storage manager
+- `src/auth.js` - JWT authentication utilities
+- `server.js` - Express web server
 - `index.js` - Interactive CLI interface
+
+### Frontend
+- `public/index.html` - Web UI structure
+- `public/styles.css` - Web UI styling
+- `public/app.js` - Web UI logic
+
+### Tests
 - `tests/` - Comprehensive test suite
 
 ## API Usage
