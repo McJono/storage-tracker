@@ -1,4 +1,10 @@
-require('dotenv').config();
+// Load environment variables from .env file if dotenv is available
+try {
+  require('dotenv').config();
+} catch (error) {
+  // dotenv not installed - skip loading .env file
+  // This allows the server to run even without npm install
+}
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
@@ -27,16 +33,21 @@ emailService.configure();
 
 // Load data on startup
 (async () => {
-  await userManager.load();
-  await storageManager.load();
-  await tokenManager.load();
-  console.log('Data loaded successfully');
-  
-  if (emailService.isConfigured()) {
-    console.log('Email service configured - passwordless authentication enabled');
-  } else {
-    console.warn('Email service not configured - passwordless authentication disabled');
-    console.warn('Set SMTP_HOST, SMTP_USER, and SMTP_PASS environment variables to enable');
+  try {
+    await userManager.load();
+    await storageManager.load();
+    await tokenManager.load();
+    console.log('Data loaded successfully');
+    
+    if (emailService.isConfigured()) {
+      console.log('Email service configured - passwordless authentication enabled');
+    } else {
+      console.warn('Email service not configured - passwordless authentication disabled');
+      console.warn('Set SMTP_HOST, SMTP_USER, and SMTP_PASS environment variables to enable');
+    }
+  } catch (error) {
+    console.error('Error loading data:', error.message);
+    console.error('The server will continue to run, but some features may not work correctly.');
   }
 })();
 
