@@ -156,12 +156,15 @@ To move to production:
 - User data isolation
 - Input validation on forms
 
-### Needed
-- Rate limiting on API endpoints
-- HTTPS enforcement
+### Needed (High Priority)
+- **Rate limiting on API endpoints** (CodeQL Alert: 15 endpoints need rate limiting)
+- HTTPS enforcement in production
+- Stronger JWT secret in production (use .env file)
+
+### Needed (Medium Priority)
 - Content Security Policy headers
 - SQL injection prevention (when database is added)
-- XSS prevention
+- XSS prevention (basic protection in place)
 - CSRF tokens
 - Session management improvements
 - Account lockout after failed attempts
