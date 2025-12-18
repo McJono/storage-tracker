@@ -20,13 +20,51 @@ A hierarchical storage location tracker built with Node.js that allows you to or
 - 👥 **User Management**: Register and manage multiple users
 - 🔐 **Secure Authentication**: JWT token-based authentication
 - 🔒 **Data Isolation**: Each user has their own private storage data
-- 🛡️ **Password Security**: Bcrypt password hashing
+- ✉️ **Passwordless Login**: Magic link authentication via email (14-day expiry)
+- 📧 **SMTP Support**: Use your own email server for sending magic links
+- 🛡️ **Legacy Password Support**: Optional password-based authentication for backward compatibility
 
 ## Installation
 
 ```bash
 npm install
 ```
+
+## Configuration
+
+### SMTP Setup (Required for Passwordless Authentication)
+
+To enable passwordless email authentication, you need to configure SMTP settings. Create a `.env` file in the project root:
+
+```bash
+cp .env.example .env
+```
+
+Then edit the `.env` file with your SMTP settings:
+
+```env
+# SMTP Configuration
+SMTP_HOST=smtp.gmail.com          # Your SMTP server
+SMTP_PORT=587                      # SMTP port (usually 587 for TLS)
+SMTP_SECURE=false                  # true for port 465, false for other ports
+SMTP_USER=your-email@gmail.com    # Your email address
+SMTP_PASS=your-app-password       # Your email password or app-specific password
+SMTP_FROM=Storage Tracker <your-email@gmail.com>  # From address in emails
+
+# Application URL (used in magic link emails)
+APP_URL=http://localhost:3000
+```
+
+**For Gmail users:**
+1. Enable 2-factor authentication on your Google account
+2. Generate an [App Password](https://support.google.com/accounts/answer/185833)
+3. Use the app password as `SMTP_PASS`
+
+**For other email providers:**
+- Consult your email provider's SMTP documentation
+- Common providers: Gmail, Outlook, SendGrid, Mailgun, etc.
+
+**Note:** If SMTP is not configured, the application will still work but passwordless authentication will be disabled. Users can still use the legacy password-based login if available.
 
 ## Usage
 
@@ -202,10 +240,20 @@ Goodbye!
 ### User
 - `id` - Unique identifier
 - `username` - Unique username
-- `email` - User email address
-- `passwordHash` - Bcrypt hashed password
+- `email` - User email address (unique)
+- `passwordHash` - Bcrypt hashed password (optional for passwordless users)
 - `createdAt` - Creation timestamp
 - `updatedAt` - Last update timestamp
+
+### LoginToken (Magic Link)
+- `id` - Unique identifier
+- `userId` - Associated user ID
+- `email` - User email address
+- `token` - Secure random token (64 characters)
+- `expiresAt` - Token expiration date (14 days from creation)
+- `createdAt` - Creation timestamp
+- `used` - Whether token has been used
+- `usedAt` - When token was used
 
 ### Box
 - `id` - Unique identifier
@@ -234,9 +282,29 @@ Goodbye!
 The web server exposes a RESTful API for all operations:
 
 ### Authentication
-- `POST /api/auth/register` - Register a new user
-- `POST /api/auth/login` - Login and get JWT token
-- `GET /api/auth/me` - Get current user info
+
+#### Passwordless Authentication (Recommended)
+- `POST /api/auth/request-magic-link` - Request a magic link via email
+  - Body: `{ "email": "user@example.com" }`
+  - Sends an email with a login link that expires in 14 days
+  - Creates a new user account if email doesn't exist
+  
+- `POST /api/auth/verify-magic-link` - Verify magic link token and get JWT
+  - Body: `{ "token": "magic-link-token" }`
+  - Returns JWT token and user info
+  
+- `GET /auth/verify?token=...` - Web endpoint for magic link verification
+  - Automatically redirects to app with authentication
+
+#### Legacy Password-based Authentication
+- `POST /api/auth/register` - Register a new user (password optional)
+  - Body: `{ "username": "user", "email": "user@example.com", "password": "optional" }`
+  
+- `POST /api/auth/login` - Login with username and password
+  - Body: `{ "username": "user", "password": "password" }`
+
+#### User Info
+- `GET /api/auth/me` - Get current user info (requires JWT token)
 
 ### Boxes
 - `GET /api/boxes` - Get all boxes for current user
