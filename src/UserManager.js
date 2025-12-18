@@ -21,8 +21,9 @@ class UserManager {
 
   /**
    * Create a new user
+   * Password is now optional for passwordless authentication
    */
-  async createUser(username, email, password) {
+  async createUser(username, email, password = null) {
     // Check if username already exists
     if (this.findUserByUsername(username)) {
       throw new Error('Username already exists');
@@ -33,8 +34,35 @@ class UserManager {
       throw new Error('Email already exists');
     }
 
-    const passwordHash = await User.hashPassword(password);
+    // Hash password if provided (for backward compatibility)
+    const passwordHash = password ? await User.hashPassword(password) : null;
     const user = new User(this.generateId(), username, email, passwordHash);
+    this.users.push(user);
+    
+    return user;
+  }
+
+  /**
+   * Create a user with email only (passwordless)
+   */
+  async createUserWithEmail(email, username = null) {
+    // Use email as username if not provided
+    const finalUsername = username || email.split('@')[0];
+    
+    // Check if email already exists
+    if (this.findUserByEmail(email)) {
+      throw new Error('Email already exists');
+    }
+
+    // Check if generated username already exists, make it unique
+    let uniqueUsername = finalUsername;
+    let counter = 1;
+    while (this.findUserByUsername(uniqueUsername)) {
+      uniqueUsername = `${finalUsername}${counter}`;
+      counter++;
+    }
+
+    const user = new User(this.generateId(), uniqueUsername, email, null);
     this.users.push(user);
     
     return user;
