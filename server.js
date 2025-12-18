@@ -82,11 +82,12 @@ app.post('/api/auth/request-magic-link', async (req, res) => {
     }
 
     // Create login token (14 day expiry)
-    const loginToken = tokenManager.createToken(user.id, email, 14);
+    const expiryDays = 14;
+    const loginToken = tokenManager.createToken(user.id, email, expiryDays);
     await saveData();
 
-    // Send magic link email
-    await emailService.sendMagicLink(email, loginToken.token);
+    // Send magic link email with expiry info
+    await emailService.sendMagicLink(email, loginToken.token, process.env.APP_URL, expiryDays);
 
     res.json({
       message: 'Magic link sent! Check your email to log in.',

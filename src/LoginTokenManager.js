@@ -63,13 +63,14 @@ class LoginTokenManager {
       return { valid: false, error: 'Invalid token' };
     }
 
-    if (!loginToken.isValid()) {
-      if (loginToken.isExpired()) {
-        return { valid: false, error: 'Token has expired' };
-      }
-      if (loginToken.used) {
-        return { valid: false, error: 'Token has already been used' };
-      }
+    // Check expiry first
+    if (loginToken.isExpired()) {
+      return { valid: false, error: 'Token has expired' };
+    }
+    
+    // Check if already used
+    if (loginToken.used) {
+      return { valid: false, error: 'Token has already been used' };
     }
 
     // Mark token as used

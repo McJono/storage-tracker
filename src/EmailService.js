@@ -54,12 +54,13 @@ class EmailService {
   /**
    * Send a magic link email
    */
-  async sendMagicLink(email, token, appUrl = process.env.APP_URL || 'http://localhost:3000') {
+  async sendMagicLink(email, token, appUrl = process.env.APP_URL || 'http://localhost:3000', expiryDays = 14) {
     if (!this.configured) {
       throw new Error('Email service not configured. Please set SMTP environment variables.');
     }
 
     const magicLink = `${appUrl}/auth/verify?token=${token}`;
+    const expiryText = expiryDays === 1 ? '1 day' : `${expiryDays} days`;
     
     const mailOptions = {
       from: this.from,
@@ -79,7 +80,7 @@ class EmailService {
           <p>Or copy and paste this link into your browser:</p>
           <p style="word-break: break-all; color: #666;">${magicLink}</p>
           <p style="margin-top: 30px; color: #666; font-size: 14px;">
-            This link will expire in 14 days. If you didn't request this login link, you can safely ignore this email.
+            This link will expire in ${expiryText}. If you didn't request this login link, you can safely ignore this email.
           </p>
         </div>
       `,
@@ -90,7 +91,7 @@ Click the link below to log in to your Storage Tracker account:
 
 ${magicLink}
 
-This link will expire in 14 days. If you didn't request this login link, you can safely ignore this email.
+This link will expire in ${expiryText}. If you didn't request this login link, you can safely ignore this email.
       `
     };
 

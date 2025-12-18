@@ -176,8 +176,11 @@ describe('LoginTokenManager', () => {
     });
 
     it('should cleanup expired tokens after loading', async () => {
-      manager.createToken('user-1', 'test1@example.com', -1); // Expired
+      // Create tokens
       manager.createToken('user-2', 'test2@example.com', 1); // Valid
+      const expiredToken = manager.createToken('user-1', 'test1@example.com', 1);
+      // Manually expire it
+      expiredToken.expiresAt = new Date(Date.now() - 1000).toISOString();
       
       await manager.save();
       
