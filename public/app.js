@@ -2,6 +2,7 @@
 const API_BASE = window.location.origin;
 let authToken = localStorage.getItem('authToken');
 let currentUser = null;
+let currentBoxId = null; // Track selected box in folder tree
 
 // Utility Functions
 function getHeaders() {
@@ -84,6 +85,7 @@ function showAppScreen() {
 async function loadData() {
     try {
         const data = await apiCall('/api/boxes');
+        renderFolderTree(data.rootBoxes);
         renderHierarchy(data.rootBoxes);
         await loadStats();
     } catch (error) {
@@ -106,6 +108,89 @@ async function loadStats() {
 }
 
 // Rendering Functions
+function renderFolderTree(boxes) {
+    const container = document.getElementById('folder-tree');
+    
+    if (!boxes || boxes.length === 0) {
+        container.innerHTML = '<div class="empty-tree">No boxes yet</div>';
+        return;
+    }
+    
+    container.innerHTML = boxes.map(box => renderTreeNode(box)).join('');
+    
+    // Attach event listeners
+    attachTreeEventListeners();
+}
+
+function renderTreeNode(box) {
+    const hasChildren = box.boxes && box.boxes.length > 0;
+    const itemCount = box.items ? box.items.length : 0;
+    const isSelected = currentBoxId === box.id;
+    
+    return `
+        <div class="tree-item" data-box-id="${box.id}">
+            <div class="tree-node ${isSelected ? 'selected' : ''}" data-box-id="${box.id}">
+                <span class="tree-toggle ${hasChildren ? '' : 'empty'}">▶</span>
+                <span class="tree-icon">📦</span>
+                <span class="tree-label">${escapeHtml(box.name)}</span>
+                <span class="tree-count">${itemCount}</span>
+            </div>
+            ${hasChildren ? `
+                <div class="tree-children">
+                    ${box.boxes.map(childBox => renderTreeNode(childBox)).join('')}
+                </div>
+            ` : ''}
+        </div>
+    `;
+}
+
+function attachTreeEventListeners() {
+    // Toggle expand/collapse
+    document.querySelectorAll('.tree-toggle:not(.empty)').forEach(toggle => {
+        toggle.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const treeItem = e.target.closest('.tree-item');
+            treeItem.classList.toggle('expanded');
+            
+            // Update toggle icon
+            if (treeItem.classList.contains('expanded')) {
+                e.target.textContent = '▼';
+            } else {
+                e.target.textContent = '▶';
+            }
+        });
+    });
+    
+    // Select box
+    document.querySelectorAll('.tree-node').forEach(node => {
+        node.addEventListener('click', async (e) => {
+            const boxId = e.currentTarget.dataset.boxId;
+            
+            // Update selected state
+            document.querySelectorAll('.tree-node').forEach(n => n.classList.remove('selected'));
+            e.currentTarget.classList.add('selected');
+            currentBoxId = boxId;
+            
+            // Load and display the selected box
+            await displayBox(boxId);
+            
+            // Close mobile menu
+            closeMobileMenu();
+        });
+    });
+}
+
+async function displayBox(boxId) {
+    try {
+        const box = await apiCall(`/api/boxes/${boxId}`);
+        const container = document.getElementById('hierarchy-view');
+        container.innerHTML = renderBox(box);
+        attachBoxEventListeners();
+    } catch (error) {
+        console.error('Error displaying box:', error);
+    }
+}
+
 function renderHierarchy(boxes) {
     const container = document.getElementById('hierarchy-view');
     
@@ -407,6 +492,8 @@ function clearSearch() {
     document.getElementById('search-input').value = '';
     document.getElementById('search-results').style.display = 'none';
     document.getElementById('hierarchy-view').style.display = 'block';
+    currentBoxId = null;
+    document.querySelectorAll('.tree-node').forEach(n => n.classList.remove('selected'));
 }
 
 // Modal Functions
@@ -520,8 +607,36 @@ function escapeHtml(text) {
     return div.innerHTML;
 }
 
+// Mobile Menu Functions
+function openMobileMenu() {
+    document.querySelector('.sidebar').classList.add('active');
+    document.querySelector('.sidebar-overlay').classList.add('active');
+    document.querySelector('.menu-toggle').classList.add('active');
+}
+
+function closeMobileMenu() {
+    document.querySelector('.sidebar').classList.remove('active');
+    document.querySelector('.sidebar-overlay').classList.remove('active');
+    document.querySelector('.menu-toggle').classList.remove('active');
+}
+
+function toggleMobileMenu() {
+    const sidebar = document.querySelector('.sidebar');
+    if (sidebar.classList.contains('active')) {
+        closeMobileMenu();
+    } else {
+        openMobileMenu();
+    }
+}
+
 // Event Handlers
 document.addEventListener('DOMContentLoaded', () => {
+    // Mobile menu toggle
+    document.getElementById('menu-toggle').addEventListener('click', toggleMobileMenu);
+    
+    // Close menu when clicking overlay
+    document.querySelector('.sidebar-overlay').addEventListener('click', closeMobileMenu);
+    
     // Auth tab switching
     document.querySelectorAll('.tab-button').forEach(btn => {
         btn.addEventListener('click', () => {
