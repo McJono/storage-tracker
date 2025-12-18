@@ -6,6 +6,7 @@ class Item {
     this.id = id;
     this.name = name;
     this.description = description;
+    this.amount = 0;
     this.boughtAmount = 0;
     this.boughtPrice = 0;
     this.soldAmount = 0;
@@ -20,6 +21,7 @@ class Item {
   update(updates) {
     if (updates.name !== undefined) this.name = updates.name;
     if (updates.description !== undefined) this.description = updates.description;
+    if (updates.amount !== undefined) this.amount = updates.amount;
     if (updates.boughtAmount !== undefined) this.boughtAmount = updates.boughtAmount;
     if (updates.boughtPrice !== undefined) this.boughtPrice = updates.boughtPrice;
     if (updates.soldAmount !== undefined) this.soldAmount = updates.soldAmount;
@@ -52,6 +54,7 @@ class Item {
       id: this.id,
       name: this.name,
       description: this.description,
+      amount: this.amount,
       boughtAmount: this.boughtAmount,
       boughtPrice: this.boughtPrice,
       soldAmount: this.soldAmount,
@@ -68,6 +71,7 @@ class Item {
    */
   static fromJSON(data) {
     const item = new Item(data.id, data.name, data.description);
+    item.amount = data.amount || 0;
     item.boughtAmount = data.boughtAmount || 0;
     item.boughtPrice = data.boughtPrice || 0;
     item.soldAmount = data.soldAmount || 0;
