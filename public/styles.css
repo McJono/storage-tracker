@@ -763,3 +763,118 @@ body {
         justify-content: flex-start;
     }
 }
+
+/* Family Sharing Styles */
+.family-sharing-container {
+    margin-top: 1.5rem;
+    padding: 1rem;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.family-sharing-container h3 {
+    font-size: 0.875rem;
+    color: #555;
+    margin-bottom: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.sharing-section {
+    margin-bottom: 2rem;
+}
+
+.sharing-section h3 {
+    font-size: 1rem;
+    color: #333;
+    margin-bottom: 1rem;
+    text-transform: none;
+    letter-spacing: normal;
+    border-bottom: 2px solid #667eea;
+    padding-bottom: 0.5rem;
+}
+
+.sharing-list {
+    margin-bottom: 1rem;
+}
+
+.sharing-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem;
+    background: #f9f9f9;
+    border-radius: 5px;
+    margin-bottom: 0.5rem;
+    border: 1px solid #e0e0e0;
+}
+
+.sharing-item-info {
+    flex: 1;
+}
+
+.sharing-item-email {
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 0.25rem;
+}
+
+.sharing-item-status {
+    font-size: 0.875rem;
+    color: #666;
+}
+
+.sharing-item-status.pending {
+    color: #f39c12;
+}
+
+.sharing-item-status.accepted {
+    color: #27ae60;
+}
+
+.sharing-item-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.empty-sharing {
+    color: #999;
+    font-style: italic;
+    padding: 1rem;
+    text-align: center;
+}
+
+.btn-small {
+    padding: 0.375rem 0.75rem;
+    font-size: 0.875rem;
+}
+
+.btn-accept {
+    background-color: #27ae60;
+}
+
+.btn-accept:hover {
+    background-color: #229954;
+}
+
+.btn-reject,
+.btn-remove {
+    background-color: #e74c3c;
+}
+
+.btn-reject:hover,
+.btn-remove:hover {
+    background-color: #c0392b;
+}
+
+#share-success {
+    color: #27ae60;
+    padding: 0.5rem;
+    margin-top: 0.5rem;
+    display: none;
+}
+
+#share-success.show {
+    display: block;
+}

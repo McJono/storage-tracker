@@ -17,6 +17,7 @@ const UserManager = require('./src/UserManager');
 const MultiUserStorageTracker = require('./src/MultiUserStorageTracker');
 const LoginTokenManager = require('./src/LoginTokenManager');
 const EmailService = require('./src/EmailService');
+const FamilyShareManager = require('./src/FamilyShareManager');
 const { generateToken, authenticate } = require('./src/auth');
 
 const app = express();
@@ -29,7 +30,8 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 // Initialize managers
 const userManager = new UserManager();
-const storageManager = new MultiUserStorageTracker();
+const familyShareManager = new FamilyShareManager();
+const storageManager = new MultiUserStorageTracker(null, familyShareManager);
 const tokenManager = new LoginTokenManager();
 const emailService = new EmailService();
 
@@ -42,6 +44,7 @@ emailService.configure();
     await userManager.load();
     await storageManager.load();
     await tokenManager.load();
+    await familyShareManager.load();
     console.log('Data loaded successfully');
     
     if (emailService.isConfigured()) {
@@ -61,6 +64,7 @@ async function saveData() {
   await userManager.save();
   await storageManager.save();
   await tokenManager.save();
+  await familyShareManager.save();
 }
 
 // ============= Authentication Routes =============
@@ -583,6 +587,187 @@ app.get('/api/stats', authenticate, (req, res) => {
     const tracker = storageManager.getUserStorage(req.user.id);
     const stats = tracker.getStats();
     res.json(stats);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ============= Family Sharing Routes =============
+
+/**
+ * Create a new family share invitation
+ */
+app.post('/api/shares', authenticate, async (req, res) => {
+  try {
+    const { email } = req.body;
+
+    if (!email) {
+      return res.status(400).json({ error: 'Email is required' });
+    }
+
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return res.status(400).json({ error: 'Invalid email format' });
+    }
+
+    // Don't allow sharing with yourself
+    const currentUser = userManager.findUserById(req.user.id);
+    if (currentUser.email === email) {
+      return res.status(400).json({ error: 'Cannot share with yourself' });
+    }
+
+    // Check if user already has accepted shares (can't share if you're already sharing)
+    const existingShares = familyShareManager.getUserShares(req.user.id);
+    if (existingShares.incoming.length > 0) {
+      return res.status(400).json({ 
+        error: 'You are already sharing someone else\'s account. You cannot share your account while using a shared account.' 
+      });
+    }
+
+    // Create the share
+    const share = familyShareManager.createShare(req.user.id, email);
+    await saveData();
+
+    // Try to send email notification if possible
+    if (emailService.isConfigured()) {
+      try {
+        const inviterUser = userManager.findUserById(req.user.id);
+        await emailService.sendShareInvitation(email, inviterUser.email, inviterUser.username, process.env.APP_URL);
+      } catch (emailError) {
+        console.error('Failed to send share invitation email:', emailError);
+        // Continue anyway - the share is created
+      }
+    }
+
+    res.status(201).json(share.toJSON());
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+/**
+ * Get all shares for current user
+ */
+app.get('/api/shares', authenticate, (req, res) => {
+  try {
+    const currentUser = userManager.findUserById(req.user.id);
+    const shares = familyShareManager.getUserShares(req.user.id);
+    const pendingInvites = familyShareManager.getPendingSharesForEmail(currentUser.email);
+
+    // Enrich shares with user information
+    const enrichShare = (share) => {
+      const shareData = share.toJSON();
+      const owner = userManager.findUserById(share.ownerUserId);
+      const sharedWith = share.sharedWithUserId ? userManager.findUserById(share.sharedWithUserId) : null;
+      
+      return {
+        ...shareData,
+        ownerEmail: owner ? owner.email : null,
+        ownerUsername: owner ? owner.username : null,
+        sharedWithUsername: sharedWith ? sharedWith.username : null
+      };
+    };
+
+    res.json({
+      outgoing: shares.outgoing.map(enrichShare),
+      incoming: shares.incoming.map(enrichShare),
+      pending: pendingInvites.map(enrichShare)
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * Accept a share invitation
+ */
+app.post('/api/shares/:id/accept', authenticate, async (req, res) => {
+  try {
+    const share = familyShareManager.findShareById(req.params.id);
+    
+    if (!share) {
+      return res.status(404).json({ error: 'Share not found' });
+    }
+
+    const currentUser = userManager.findUserById(req.user.id);
+    
+    // Verify the share is for this user's email
+    if (share.sharedWithEmail !== currentUser.email) {
+      return res.status(403).json({ error: 'This share is not for you' });
+    }
+
+    // Check if user already has any accepted shares
+    const existingShares = familyShareManager.getUserShares(req.user.id);
+    if (existingShares.incoming.length > 0) {
+      return res.status(400).json({ 
+        error: 'You are already sharing an account. Please remove the existing share first.' 
+      });
+    }
+
+    // Check if user has any outgoing shares (can't accept if you're sharing your own account)
+    if (existingShares.outgoing.length > 0) {
+      return res.status(400).json({ 
+        error: 'You cannot accept a share while you are sharing your account with others. Please remove your outgoing shares first.' 
+      });
+    }
+
+    familyShareManager.acceptShare(req.params.id, req.user.id);
+    await saveData();
+
+    res.json(share.toJSON());
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+/**
+ * Reject a share invitation
+ */
+app.post('/api/shares/:id/reject', authenticate, async (req, res) => {
+  try {
+    const share = familyShareManager.findShareById(req.params.id);
+    
+    if (!share) {
+      return res.status(404).json({ error: 'Share not found' });
+    }
+
+    const currentUser = userManager.findUserById(req.user.id);
+    
+    // Verify the share is for this user's email
+    if (share.sharedWithEmail !== currentUser.email) {
+      return res.status(403).json({ error: 'This share is not for you' });
+    }
+
+    familyShareManager.rejectShare(req.params.id);
+    await saveData();
+
+    res.json(share.toJSON());
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+/**
+ * Delete/revoke a share
+ */
+app.delete('/api/shares/:id', authenticate, async (req, res) => {
+  try {
+    const share = familyShareManager.findShareById(req.params.id);
+    
+    if (!share) {
+      return res.status(404).json({ error: 'Share not found' });
+    }
+
+    // Only owner or shared user can delete
+    if (share.ownerUserId !== req.user.id && share.sharedWithUserId !== req.user.id) {
+      return res.status(403).json({ error: 'You do not have permission to delete this share' });
+    }
+
+    familyShareManager.deleteShare(req.params.id);
+    await saveData();
+
+    res.json({ message: 'Share deleted successfully' });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

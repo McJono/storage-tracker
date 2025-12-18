@@ -6,19 +6,28 @@ const StorageTracker = require('./StorageTracker');
  * MultiUserStorageTracker manages storage data for multiple users
  */
 class MultiUserStorageTracker {
-  constructor(dataPath = null) {
+  constructor(dataPath = null, familyShareManager = null) {
     this.userStorages = new Map(); // userId -> StorageTracker
     this.dataPath = dataPath || path.join(__dirname, '../data/multi-user-storage.json');
+    this.familyShareManager = familyShareManager; // Optional FamilyShareManager for shared access
   }
 
   /**
    * Get or create storage tracker for a user
+   * If familyShareManager is set, this will return shared storage if applicable
    */
   getUserStorage(userId) {
-    if (!this.userStorages.has(userId)) {
-      this.userStorages.set(userId, new StorageTracker(null));
+    // Determine the actual storage owner (considering family sharing)
+    let storageOwnerId = userId;
+    if (this.familyShareManager) {
+      storageOwnerId = this.familyShareManager.getPrimaryStorageOwner(userId);
     }
-    return this.userStorages.get(userId);
+
+    // Get or create storage for the owner
+    if (!this.userStorages.has(storageOwnerId)) {
+      this.userStorages.set(storageOwnerId, new StorageTracker(null));
+    }
+    return this.userStorages.get(storageOwnerId);
   }
 
   /**

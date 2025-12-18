@@ -134,6 +134,70 @@ This link will expire in ${expiryText}. If you didn't request this login link, y
       throw new Error(`Failed to send test email: ${error.message}`);
     }
   }
+
+  /**
+   * Send a family share invitation email
+   */
+  async sendShareInvitation(recipientEmail, inviterEmail, inviterUsername, appUrl = process.env.APP_URL || 'http://localhost:3000') {
+    if (!this.configured) {
+      throw new Error('Email service not configured. Please set SMTP environment variables.');
+    }
+
+    const loginLink = `${appUrl}`;
+    
+    const mailOptions = {
+      from: this.from,
+      to: recipientEmail,
+      subject: `${inviterUsername} wants to share their Storage Tracker account with you`,
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2>Storage Tracker - Family Account Sharing</h2>
+          <p><strong>${inviterUsername}</strong> (${inviterEmail}) has invited you to share their Storage Tracker account!</p>
+          <p>When you accept this invitation, you will be able to access and modify the same storage data as ${inviterUsername}.</p>
+          <p style="margin: 30px 0;">
+            <a href="${loginLink}" 
+               style="background-color: #007bff; color: white; padding: 12px 24px; 
+                      text-decoration: none; border-radius: 4px; display: inline-block;">
+              Log In to Accept Invitation
+            </a>
+          </p>
+          <p>Or copy and paste this link into your browser:</p>
+          <p style="word-break: break-all; color: #666;">${loginLink}</p>
+          <p style="margin-top: 30px; color: #666; font-size: 14px;">
+            After logging in, you'll find the invitation in your account settings where you can accept or reject it.
+          </p>
+          <p style="margin-top: 20px; color: #666; font-size: 14px;">
+            If you don't recognize ${inviterEmail}, you can safely ignore this email.
+          </p>
+        </div>
+      `,
+      text: `
+Storage Tracker - Family Account Sharing
+
+${inviterUsername} (${inviterEmail}) has invited you to share their Storage Tracker account!
+
+When you accept this invitation, you will be able to access and modify the same storage data as ${inviterUsername}.
+
+Log in here to accept the invitation:
+${loginLink}
+
+After logging in, you'll find the invitation in your account settings where you can accept or reject it.
+
+If you don't recognize ${inviterEmail}, you can safely ignore this email.
+      `
+    };
+
+    try {
+      const info = await this.transporter.sendMail(mailOptions);
+      return {
+        success: true,
+        messageId: info.messageId
+      };
+    } catch (error) {
+      console.error('Error sending share invitation email:', error);
+      throw new Error(`Failed to send share invitation email: ${error.message}`);
+    }
+  }
 }
 
 module.exports = EmailService;
