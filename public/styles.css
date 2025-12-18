@@ -546,6 +546,16 @@ body {
     display: flex;
     align-items: center;
     gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.item-amount-badge {
+    background: #667eea;
+    color: white;
+    padding: 0.15rem 0.5rem;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 500;
 }
 
 .item-actions {
@@ -737,6 +747,18 @@ body {
     }
 
     .item-actions {
+        width: 100%;
+        justify-content: flex-start;
+    }
+
+    /* Move box actions to second line on mobile */
+    .box-header {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0.75rem;
+    }
+
+    .box-actions {
         width: 100%;
         justify-content: flex-start;
     }

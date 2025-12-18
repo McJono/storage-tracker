@@ -7,6 +7,7 @@ describe('Item', () => {
     expect(item.id).toBe('item-1');
     expect(item.name).toBe('Laptop');
     expect(item.description).toBe('Dell XPS 13');
+    expect(item.amount).toBe(0);
     expect(item.boughtAmount).toBe(0);
     expect(item.boughtPrice).toBe(0);
     expect(item.soldAmount).toBe(0);
@@ -19,6 +20,7 @@ describe('Item', () => {
     item.update({
       name: 'Gaming Laptop',
       description: 'High-end gaming laptop',
+      amount: 3,
       boughtAmount: 2,
       boughtPrice: 1000,
       soldAmount: 1,
@@ -27,6 +29,7 @@ describe('Item', () => {
     
     expect(item.name).toBe('Gaming Laptop');
     expect(item.description).toBe('High-end gaming laptop');
+    expect(item.amount).toBe(3);
     expect(item.boughtAmount).toBe(2);
     expect(item.boughtPrice).toBe(1000);
     expect(item.soldAmount).toBe(1);
@@ -66,6 +69,7 @@ describe('Item', () => {
   test('should serialize to JSON correctly', () => {
     const item = new Item('item-1', 'Widget', 'Blue widget');
     item.update({
+      amount: 8,
       boughtAmount: 5,
       boughtPrice: 10,
       soldAmount: 3,
@@ -77,6 +81,7 @@ describe('Item', () => {
     expect(json.id).toBe('item-1');
     expect(json.name).toBe('Widget');
     expect(json.description).toBe('Blue widget');
+    expect(json.amount).toBe(8);
     expect(json.boughtAmount).toBe(5);
     expect(json.boughtPrice).toBe(10);
     expect(json.soldAmount).toBe(3);
@@ -90,6 +95,7 @@ describe('Item', () => {
       id: 'item-1',
       name: 'Widget',
       description: 'Blue widget',
+      amount: 8,
       boughtAmount: 5,
       boughtPrice: 10,
       soldAmount: 3,
@@ -103,6 +109,7 @@ describe('Item', () => {
     expect(item.id).toBe('item-1');
     expect(item.name).toBe('Widget');
     expect(item.description).toBe('Blue widget');
+    expect(item.amount).toBe(8);
     expect(item.boughtAmount).toBe(5);
     expect(item.boughtPrice).toBe(10);
     expect(item.soldAmount).toBe(3);

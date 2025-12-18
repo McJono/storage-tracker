@@ -274,6 +274,7 @@ function renderItem(item) {
                 <div class="item-name">
                     <span>📌</span>
                     <span>${escapeHtml(item.name)}</span>
+                    ${item.amount > 0 ? `<span class="item-amount-badge">Qty: ${item.amount}</span>` : ''}
                 </div>
                 <div class="item-actions">
                     <button class="btn btn-secondary btn-edit-item" data-item-id="${item.id}">Edit</button>
@@ -419,7 +420,7 @@ async function deleteBox(id) {
 }
 
 // Item CRUD Operations
-async function createItem(name, description, boxId, boughtAmount, boughtPrice, soldAmount, soldPrice) {
+async function createItem(name, description, boxId, amount, boughtAmount, boughtPrice, soldAmount, soldPrice) {
     try {
         const item = await apiCall('/api/items', {
             method: 'POST',
@@ -427,10 +428,12 @@ async function createItem(name, description, boxId, boughtAmount, boughtPrice, s
         });
         
         // Update financial data if provided
-        if (boughtAmount || boughtPrice || soldAmount || soldPrice) {
+        const hasFinancialData = amount !== '' || boughtAmount !== '' || boughtPrice !== '' || soldAmount !== '' || soldPrice !== '';
+        if (hasFinancialData) {
             await apiCall(`/api/items/${item.id}`, {
                 method: 'PUT',
                 body: JSON.stringify({ 
+                    amount: parseFloat(amount) || 0,
                     boughtAmount: parseFloat(boughtAmount) || 0,
                     boughtPrice: parseFloat(boughtPrice) || 0,
                     soldAmount: parseFloat(soldAmount) || 0,
@@ -439,7 +442,13 @@ async function createItem(name, description, boxId, boughtAmount, boughtPrice, s
             });
         }
         
-        await loadData();
+        // Instead of loading all data, reload only the current box
+        if (currentBoxId) {
+            await displayBox(currentBoxId);
+            await loadStats();
+        } else {
+            await loadData();
+        }
     } catch (error) {
         throw error;
     }
@@ -451,7 +460,14 @@ async function updateItem(id, updates) {
             method: 'PUT',
             body: JSON.stringify(updates)
         });
-        await loadData();
+        
+        // Instead of loading all data, reload only the current box
+        if (currentBoxId) {
+            await displayBox(currentBoxId);
+            await loadStats();
+        } else {
+            await loadData();
+        }
     } catch (error) {
         throw error;
     }
@@ -603,6 +619,7 @@ async function openItemModal(itemId = null, boxId = null) {
             document.getElementById('item-id').value = item.id;
             document.getElementById('item-name').value = item.name;
             document.getElementById('item-description').value = item.description || '';
+            document.getElementById('item-amount').value = item.amount || '';
             document.getElementById('item-bought-amount').value = item.boughtAmount || '';
             document.getElementById('item-bought-price').value = item.boughtPrice || '';
             document.getElementById('item-sold-amount').value = item.soldAmount || '';
@@ -787,6 +804,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const name = document.getElementById('item-name').value;
         const description = document.getElementById('item-description').value;
         const boxId = document.getElementById('item-box-id').value;
+        const amount = document.getElementById('item-amount').value;
         const boughtAmount = document.getElementById('item-bought-amount').value;
         const boughtPrice = document.getElementById('item-bought-price').value;
         const soldAmount = document.getElementById('item-sold-amount').value;
@@ -797,13 +815,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 await updateItem(id, {
                     name,
                     description,
+                    amount: parseFloat(amount) || 0,
                     boughtAmount: parseFloat(boughtAmount) || 0,
                     boughtPrice: parseFloat(boughtPrice) || 0,
                     soldAmount: parseFloat(soldAmount) || 0,
                     soldPrice: parseFloat(soldPrice) || 0
                 });
             } else {
-                await createItem(name, description, boxId, boughtAmount, boughtPrice, soldAmount, soldPrice);
+                await createItem(name, description, boxId, amount, boughtAmount, boughtPrice, soldAmount, soldPrice);
             }
             closeModal('item-modal');
         } catch (error) {
