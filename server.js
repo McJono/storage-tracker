@@ -258,13 +258,31 @@ app.get('/auth/verify', (req, res) => {
     `);
   }
 
+  // Validate and sanitize token (should be hex string)
+  if (!/^[a-f0-9]{64}$/i.test(token)) {
+    return res.send(`
+      <!DOCTYPE html>
+      <html>
+        <head><title>Invalid Link</title></head>
+        <body style="font-family: Arial, sans-serif; text-align: center; padding: 50px;">
+          <h1>Invalid Link</h1>
+          <p>This magic link is invalid or malformed.</p>
+          <a href="/" style="color: #007bff;">Go to Login</a>
+        </body>
+      </html>
+    `);
+  }
+
+  // Token is validated as hex, safe to use directly
+  const encodedToken = encodeURIComponent(token);
+  
   // Redirect to the main app with the token as a hash parameter
   res.send(`
     <!DOCTYPE html>
     <html>
       <head>
         <title>Verifying...</title>
-        <meta http-equiv="refresh" content="5;url=/#token=${encodeURIComponent(token)}">
+        <meta http-equiv="refresh" content="5;url=/#token=${encodedToken}">
         <style>
           body { 
             font-family: Arial, sans-serif; 
@@ -299,10 +317,10 @@ app.get('/auth/verify', (req, res) => {
         <h1>Verifying your login...</h1>
         <div class="spinner"></div>
         <p>Please wait while we log you in.</p>
-        <p><small>If you are not redirected automatically, <a href="/#token=${encodeURIComponent(token)}" class="fallback-link">click here</a>.</small></p>
+        <p><small>If you are not redirected automatically, <a href="/#token=${encodedToken}" class="fallback-link">click here</a>.</small></p>
         <script>
           // Redirect to main page with token in hash
-          window.location.href = '/#token=' + encodeURIComponent('${token}');
+          window.location.href = '/#token=${encodedToken}';
         </script>
       </body>
     </html>
