@@ -516,7 +516,7 @@ body {
     display: none;
 }
 
-.box-item.expanded .box-content {
+.box-item.expanded > .box-content {
     display: block;
 }
 
