@@ -113,6 +113,10 @@ class FamilyShareManager {
    * Get the primary storage owner for a user
    * Returns the user's own ID if they own the storage,
    * or the owner's ID if they have accepted a share
+   * 
+   * Note: The application enforces that a user can only have one active incoming share
+   * at a time (enforced in the API accept endpoint), so this method will return the
+   * single accepted share if one exists.
    */
   getPrimaryStorageOwner(userId) {
     // Check if user has accepted any incoming shares
