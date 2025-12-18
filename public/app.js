@@ -15,6 +15,23 @@ function getHeaders() {
     return headers;
 }
 
+// Helper function for pluralization
+function pluralize(count, singular, plural) {
+    return count !== 1 ? plural : singular;
+}
+
+// Helper function to refresh current view after data changes
+async function refreshCurrentView() {
+    const data = await apiCall('/api/boxes');
+    renderFolderTree(data.rootBoxes);
+    if (currentBoxId) {
+        await displayBox(currentBoxId);
+    } else {
+        renderHierarchy(data.rootBoxes);
+    }
+    await loadStats();
+}
+
 async function apiCall(endpoint, options = {}) {
     try {
         const response = await fetch(`${API_BASE}${endpoint}`, {
@@ -173,10 +190,10 @@ function renderTreeNode(box) {
     if (itemCount > 0 || nestedBoxCount > 0) {
         const parts = [];
         if (itemCount > 0) {
-            parts.push(`${itemCount} item${itemCount !== 1 ? 's' : ''}`);
+            parts.push(`${itemCount} ${pluralize(itemCount, 'item', 'items')}`);
         }
         if (nestedBoxCount > 0) {
-            parts.push(`${nestedBoxCount} box${nestedBoxCount !== 1 ? 'es' : ''}`);
+            parts.push(`${nestedBoxCount} ${pluralize(nestedBoxCount, 'box', 'boxes')}`);
         }
         countDisplay = parts.join(', ');
     }
@@ -266,10 +283,10 @@ function renderBox(box, level = 0) {
     // Build the info tags for items and nested boxes
     let infoTags = '';
     if (box.items.length > 0) {
-        infoTags += `<small style="color: #999;">(${box.items.length} item${box.items.length !== 1 ? 's' : ''})</small>`;
+        infoTags += `<small style="color: #999;">(${box.items.length} ${pluralize(box.items.length, 'item', 'items')})</small>`;
     }
     if (box.boxes.length > 0) {
-        infoTags += `<small style="color: #999;">(${box.boxes.length} box${box.boxes.length !== 1 ? 'es' : ''})</small>`;
+        infoTags += `<small style="color: #999;">(${box.boxes.length} ${pluralize(box.boxes.length, 'box', 'boxes')})</small>`;
     }
     
     return `
@@ -431,15 +448,7 @@ async function createBox(name, description, parentBoxId) {
             body: JSON.stringify({ name, description, parentBoxId })
         });
         
-        // Instead of loading all data, reload only the current box or reload folder tree
-        const data = await apiCall('/api/boxes');
-        renderFolderTree(data.rootBoxes);
-        if (currentBoxId) {
-            await displayBox(currentBoxId);
-        } else {
-            renderHierarchy(data.rootBoxes);
-        }
-        await loadStats();
+        await refreshCurrentView();
     } catch (error) {
         throw error;
     }
@@ -452,15 +461,7 @@ async function updateBox(id, name, description) {
             body: JSON.stringify({ name, description })
         });
         
-        // Instead of loading all data, reload only the current box or reload folder tree
-        const data = await apiCall('/api/boxes');
-        renderFolderTree(data.rootBoxes);
-        if (currentBoxId) {
-            await displayBox(currentBoxId);
-        } else {
-            renderHierarchy(data.rootBoxes);
-        }
-        await loadStats();
+        await refreshCurrentView();
     } catch (error) {
         throw error;
     }
@@ -477,15 +478,7 @@ async function deleteBox(id) {
             currentBoxId = null;
         }
         
-        // Reload data and maintain view
-        const data = await apiCall('/api/boxes');
-        renderFolderTree(data.rootBoxes);
-        if (currentBoxId) {
-            await displayBox(currentBoxId);
-        } else {
-            renderHierarchy(data.rootBoxes);
-        }
-        await loadStats();
+        await refreshCurrentView();
     } catch (error) {
         alert('Error deleting box: ' + error.message);
     }
@@ -514,12 +507,9 @@ async function createItem(name, description, boxId, amount, boughtAmount, bought
             });
         }
         
-        // Instead of loading all data, reload only the current box
+        // Refresh view after creating item
         if (currentBoxId) {
-            const data = await apiCall('/api/boxes');
-            renderFolderTree(data.rootBoxes);
-            await displayBox(currentBoxId);
-            await loadStats();
+            await refreshCurrentView();
         } else {
             await loadData();
         }
@@ -535,12 +525,9 @@ async function updateItem(id, updates) {
             body: JSON.stringify(updates)
         });
         
-        // Instead of loading all data, reload only the current box
+        // Refresh view after updating item
         if (currentBoxId) {
-            const data = await apiCall('/api/boxes');
-            renderFolderTree(data.rootBoxes);
-            await displayBox(currentBoxId);
-            await loadStats();
+            await refreshCurrentView();
         } else {
             await loadData();
         }
@@ -555,15 +542,7 @@ async function deleteItem(id) {
             method: 'DELETE'
         });
         
-        // Instead of loading all data, reload only the current box
-        const data = await apiCall('/api/boxes');
-        renderFolderTree(data.rootBoxes);
-        if (currentBoxId) {
-            await displayBox(currentBoxId);
-        } else {
-            renderHierarchy(data.rootBoxes);
-        }
-        await loadStats();
+        await refreshCurrentView();
     } catch (error) {
         alert('Error deleting item: ' + error.message);
     }
