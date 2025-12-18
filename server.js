@@ -1,4 +1,15 @@
-require('dotenv').config();
+// Load environment variables from .env file
+// Note: dotenv is required - if you get an error here, run 'npm install'
+try {
+  require('dotenv').config();
+} catch (error) {
+  if (error.code === 'MODULE_NOT_FOUND') {
+    console.error('Error: dotenv module not found. Please run "npm install" to install dependencies.');
+    console.error('This is required after pulling new code changes.');
+    process.exit(1);
+  }
+  throw error;
+}
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
@@ -27,16 +38,21 @@ emailService.configure();
 
 // Load data on startup
 (async () => {
-  await userManager.load();
-  await storageManager.load();
-  await tokenManager.load();
-  console.log('Data loaded successfully');
-  
-  if (emailService.isConfigured()) {
-    console.log('Email service configured - passwordless authentication enabled');
-  } else {
-    console.warn('Email service not configured - passwordless authentication disabled');
-    console.warn('Set SMTP_HOST, SMTP_USER, and SMTP_PASS environment variables to enable');
+  try {
+    await userManager.load();
+    await storageManager.load();
+    await tokenManager.load();
+    console.log('Data loaded successfully');
+    
+    if (emailService.isConfigured()) {
+      console.log('Email service configured - passwordless authentication enabled');
+    } else {
+      console.warn('Email service not configured - passwordless authentication disabled');
+      console.warn('Set SMTP_HOST, SMTP_USER, and SMTP_PASS environment variables to enable');
+    }
+  } catch (error) {
+    console.error('Error loading data:', error.message);
+    console.error('The server will continue to run, but some features may not work correctly.');
   }
 })();
 
