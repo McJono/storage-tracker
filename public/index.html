@@ -58,6 +58,11 @@
         <!-- Header -->
         <header class="app-header">
             <div class="header-left">
+                <button id="menu-toggle" class="menu-toggle" aria-label="Toggle menu">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </button>
                 <h1>📦 Storage Tracker</h1>
             </div>
             <div class="header-right">
@@ -70,32 +75,42 @@
         <div class="app-content">
             <!-- Sidebar -->
             <aside class="sidebar">
-                <div class="search-container">
-                    <input type="text" id="search-input" placeholder="Search boxes and items...">
-                    <button id="search-btn" class="btn btn-icon">🔍</button>
-                </div>
+                <div class="sidebar-content">
+                    <div class="search-container">
+                        <input type="text" id="search-input" placeholder="Search boxes and items...">
+                        <button id="search-btn" class="btn btn-icon">🔍</button>
+                    </div>
 
-                <div class="stats-container">
-                    <h3>Statistics</h3>
-                    <div class="stat-item">
-                        <span class="stat-label">Total Boxes:</span>
-                        <span id="stat-boxes" class="stat-value">0</span>
+                    <div class="folder-structure-container">
+                        <h3>Folder Structure</h3>
+                        <div id="folder-tree" class="folder-tree">
+                            <div class="empty-tree">No boxes yet</div>
+                        </div>
                     </div>
-                    <div class="stat-item">
-                        <span class="stat-label">Total Items:</span>
-                        <span id="stat-items" class="stat-value">0</span>
-                    </div>
-                    <div class="stat-item">
-                        <span class="stat-label">Root Boxes:</span>
-                        <span id="stat-root" class="stat-value">0</span>
-                    </div>
-                </div>
 
-                <div class="actions-container">
-                    <button id="create-box-btn" class="btn btn-primary btn-full">+ New Box</button>
-                    <button id="refresh-btn" class="btn btn-secondary btn-full">⟳ Refresh</button>
+                    <div class="stats-container">
+                        <h3>Statistics</h3>
+                        <div class="stat-item">
+                            <span class="stat-label">Total Boxes:</span>
+                            <span id="stat-boxes" class="stat-value">0</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">Total Items:</span>
+                            <span id="stat-items" class="stat-value">0</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">Root Boxes:</span>
+                            <span id="stat-root" class="stat-value">0</span>
+                        </div>
+                    </div>
+
+                    <div class="actions-container">
+                        <button id="create-box-btn" class="btn btn-primary btn-full">+ New Box</button>
+                        <button id="refresh-btn" class="btn btn-secondary btn-full">⟳ Refresh</button>
+                    </div>
                 </div>
             </aside>
+            <div class="sidebar-overlay"></div>
 
             <!-- Main Area -->
             <main class="main-area">
