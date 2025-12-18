@@ -493,7 +493,10 @@ function clearSearch() {
     document.getElementById('search-results').style.display = 'none';
     document.getElementById('hierarchy-view').style.display = 'block';
     currentBoxId = null;
-    document.querySelectorAll('.tree-node').forEach(n => n.classList.remove('selected'));
+    const treeNodes = document.querySelectorAll('.tree-node');
+    if (treeNodes.length > 0) {
+        treeNodes.forEach(n => n.classList.remove('selected'));
+    }
 }
 
 // Modal Functions
