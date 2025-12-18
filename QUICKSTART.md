@@ -23,7 +23,41 @@ npm run demo
 
 This will create a sample storage hierarchy with boxes and items, showing all the features.
 
-## Start Using It
+## Web Interface (Recommended)
+
+Launch the web interface with passwordless authentication:
+
+```bash
+# First, set up SMTP for email login (optional)
+cp .env.example .env
+# Edit .env with your email settings (see below)
+
+# Start the web server
+npm run server
+```
+
+Then open your browser to `http://localhost:3000`
+
+### Setting Up Email Login (Optional)
+
+For passwordless authentication via email, configure SMTP in your `.env` file:
+
+```env
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USER=your-email@gmail.com
+SMTP_PASS=your-app-password
+SMTP_FROM=Storage Tracker <your-email@gmail.com>
+```
+
+**For Gmail:**
+1. Enable 2-factor authentication on your Google account
+2. Generate an [App Password](https://support.google.com/accounts/answer/185833)
+3. Use the app password as `SMTP_PASS`
+
+**Note:** If SMTP is not configured, you can still use password-based login.
+
+## Command Line Interface
 
 Launch the interactive CLI:
 
