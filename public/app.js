@@ -138,7 +138,25 @@ function renderFolderTree(boxes) {
         return;
     }
     
+    // Store expanded state before re-rendering
+    const expandedBoxes = new Set();
+    document.querySelectorAll('.tree-item.expanded').forEach(item => {
+        expandedBoxes.add(item.dataset.boxId);
+    });
+    
     container.innerHTML = boxes.map(box => renderTreeNode(box)).join('');
+    
+    // Restore expanded state after re-rendering
+    expandedBoxes.forEach(boxId => {
+        const treeItem = container.querySelector(`.tree-item[data-box-id="${boxId}"]`);
+        if (treeItem) {
+            treeItem.classList.add('expanded');
+            const toggle = treeItem.querySelector('.tree-toggle');
+            if (toggle && !toggle.classList.contains('empty')) {
+                toggle.textContent = '▼';
+            }
+        }
+    });
     
     // Attach event listeners
     attachTreeEventListeners();
@@ -147,7 +165,21 @@ function renderFolderTree(boxes) {
 function renderTreeNode(box) {
     const hasChildren = box.boxes && box.boxes.length > 0;
     const itemCount = box.items ? box.items.length : 0;
+    const nestedBoxCount = box.boxes ? box.boxes.length : 0;
     const isSelected = currentBoxId === box.id;
+    
+    // Build count display: show items and nested boxes
+    let countDisplay = '';
+    if (itemCount > 0 || nestedBoxCount > 0) {
+        const parts = [];
+        if (itemCount > 0) {
+            parts.push(`${itemCount} item${itemCount !== 1 ? 's' : ''}`);
+        }
+        if (nestedBoxCount > 0) {
+            parts.push(`${nestedBoxCount} box${nestedBoxCount !== 1 ? 'es' : ''}`);
+        }
+        countDisplay = parts.join(', ');
+    }
     
     return `
         <div class="tree-item" data-box-id="${box.id}">
@@ -155,7 +187,7 @@ function renderTreeNode(box) {
                 <span class="tree-toggle ${hasChildren ? '' : 'empty'}">▶</span>
                 <span class="tree-icon">📦</span>
                 <span class="tree-label">${escapeHtml(box.name)}</span>
-                <span class="tree-count">${itemCount}</span>
+                ${countDisplay ? `<span class="tree-count">${countDisplay}</span>` : ''}
             </div>
             ${hasChildren ? `
                 <div class="tree-children">
@@ -231,6 +263,15 @@ function renderBox(box, level = 0) {
     const profitLoss = calculateBoxProfitLoss(box);
     const profitClass = profitLoss > 0 ? 'profit-positive' : profitLoss < 0 ? 'profit-negative' : '';
     
+    // Build the info tags for items and nested boxes
+    let infoTags = '';
+    if (box.items.length > 0) {
+        infoTags += `<small style="color: #999;">(${box.items.length} item${box.items.length !== 1 ? 's' : ''})</small>`;
+    }
+    if (box.boxes.length > 0) {
+        infoTags += `<small style="color: #999;">(${box.boxes.length} box${box.boxes.length !== 1 ? 'es' : ''})</small>`;
+    }
+    
     return `
         <div class="box-item" data-box-id="${box.id}">
             <div class="box-header">
@@ -238,7 +279,7 @@ function renderBox(box, level = 0) {
                     <div class="box-title">
                         <span>📦</span>
                         <span>${escapeHtml(box.name)}</span>
-                        <small style="color: #999;">(${box.items.length} items)</small>
+                        ${infoTags}
                     </div>
                     ${box.description ? `<div class="box-description">${escapeHtml(box.description)}</div>` : ''}
                 </div>
@@ -273,8 +314,7 @@ function renderItem(item) {
             <div class="item-header">
                 <div class="item-name">
                     <span>📌</span>
-                    <span>${escapeHtml(item.name)}</span>
-                    ${item.amount > 0 ? `<span class="item-amount-badge">Qty: ${item.amount}</span>` : ''}
+                    <span>${escapeHtml(item.name)}${item.amount > 0 ? ` (Qty: ${item.amount})` : ''}</span>
                 </div>
                 <div class="item-actions">
                     <button class="btn btn-secondary btn-edit-item" data-item-id="${item.id}">Edit</button>
@@ -390,7 +430,16 @@ async function createBox(name, description, parentBoxId) {
             method: 'POST',
             body: JSON.stringify({ name, description, parentBoxId })
         });
-        await loadData();
+        
+        // Instead of loading all data, reload only the current box or reload folder tree
+        const data = await apiCall('/api/boxes');
+        renderFolderTree(data.rootBoxes);
+        if (currentBoxId) {
+            await displayBox(currentBoxId);
+        } else {
+            renderHierarchy(data.rootBoxes);
+        }
+        await loadStats();
     } catch (error) {
         throw error;
     }
@@ -402,7 +451,16 @@ async function updateBox(id, name, description) {
             method: 'PUT',
             body: JSON.stringify({ name, description })
         });
-        await loadData();
+        
+        // Instead of loading all data, reload only the current box or reload folder tree
+        const data = await apiCall('/api/boxes');
+        renderFolderTree(data.rootBoxes);
+        if (currentBoxId) {
+            await displayBox(currentBoxId);
+        } else {
+            renderHierarchy(data.rootBoxes);
+        }
+        await loadStats();
     } catch (error) {
         throw error;
     }
@@ -413,7 +471,21 @@ async function deleteBox(id) {
         await apiCall(`/api/boxes/${id}`, {
             method: 'DELETE'
         });
-        await loadData();
+        
+        // If we deleted the current box, clear selection
+        if (currentBoxId === id) {
+            currentBoxId = null;
+        }
+        
+        // Reload data and maintain view
+        const data = await apiCall('/api/boxes');
+        renderFolderTree(data.rootBoxes);
+        if (currentBoxId) {
+            await displayBox(currentBoxId);
+        } else {
+            renderHierarchy(data.rootBoxes);
+        }
+        await loadStats();
     } catch (error) {
         alert('Error deleting box: ' + error.message);
     }
@@ -444,6 +516,8 @@ async function createItem(name, description, boxId, amount, boughtAmount, bought
         
         // Instead of loading all data, reload only the current box
         if (currentBoxId) {
+            const data = await apiCall('/api/boxes');
+            renderFolderTree(data.rootBoxes);
             await displayBox(currentBoxId);
             await loadStats();
         } else {
@@ -463,6 +537,8 @@ async function updateItem(id, updates) {
         
         // Instead of loading all data, reload only the current box
         if (currentBoxId) {
+            const data = await apiCall('/api/boxes');
+            renderFolderTree(data.rootBoxes);
             await displayBox(currentBoxId);
             await loadStats();
         } else {
@@ -478,7 +554,16 @@ async function deleteItem(id) {
         await apiCall(`/api/items/${id}`, {
             method: 'DELETE'
         });
-        await loadData();
+        
+        // Instead of loading all data, reload only the current box
+        const data = await apiCall('/api/boxes');
+        renderFolderTree(data.rootBoxes);
+        if (currentBoxId) {
+            await displayBox(currentBoxId);
+        } else {
+            renderHierarchy(data.rootBoxes);
+        }
+        await loadStats();
     } catch (error) {
         alert('Error deleting item: ' + error.message);
     }

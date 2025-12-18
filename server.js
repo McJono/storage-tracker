@@ -488,12 +488,13 @@ app.get('/api/items/:id', authenticate, (req, res) => {
  */
 app.put('/api/items/:id', authenticate, async (req, res) => {
   try {
-    const { name, description, boughtAmount, boughtPrice, soldAmount, soldPrice } = req.body;
+    const { name, description, amount, boughtAmount, boughtPrice, soldAmount, soldPrice } = req.body;
     const tracker = storageManager.getUserStorage(req.user.id);
     
     const updates = {};
     if (name !== undefined) updates.name = name;
     if (description !== undefined) updates.description = description;
+    if (amount !== undefined) updates.amount = parseFloat(amount);
     if (boughtAmount !== undefined) updates.boughtAmount = parseFloat(boughtAmount);
     if (boughtPrice !== undefined) updates.boughtPrice = parseFloat(boughtPrice);
     if (soldAmount !== undefined) updates.soldAmount = parseFloat(soldAmount);
