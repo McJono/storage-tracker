@@ -751,13 +751,132 @@ async function deleteItem(id) {
 }
 
 // Search
+let searchTimeout = null;
+let currentSuggestionIndex = -1;
+
 async function search(query) {
     try {
         const results = await apiCall(`/api/search?q=${encodeURIComponent(query)}`);
         renderSearchResults(results);
+        hideSuggestions();
     } catch (error) {
         alert('Error searching: ' + error.message);
     }
+}
+
+async function showSuggestions(query) {
+    if (!query || query.length < 1) {
+        hideSuggestions();
+        return;
+    }
+
+    try {
+        const results = await apiCall(`/api/search?q=${encodeURIComponent(query)}`);
+        renderSuggestions(results);
+    } catch (error) {
+        console.error('Error fetching suggestions:', error);
+        hideSuggestions();
+    }
+}
+
+function renderSuggestions(results) {
+    const container = document.getElementById('search-suggestions');
+    currentSuggestionIndex = -1;
+    
+    if (results.boxes.length === 0 && results.items.length === 0) {
+        container.innerHTML = '<div class="no-suggestions">No results found</div>';
+        container.classList.add('show');
+        return;
+    }
+    
+    let html = '';
+    
+    // Limit to first 5 boxes and 5 items for suggestions
+    const boxes = results.boxes.slice(0, 5);
+    const items = results.items.slice(0, 5);
+    
+    boxes.forEach(box => {
+        const pathStr = box.path.length > 0 
+            ? box.path.map(p => p.name).join(' > ')
+            : 'Root';
+        html += `
+            <div class="suggestion-item" data-type="box" data-id="${box.id}">
+                <div>
+                    <span class="suggestion-type box">Box</span>
+                    <span class="suggestion-name">📦 ${escapeHtml(box.name)}</span>
+                </div>
+                ${box.path.length > 0 ? `<div class="suggestion-path">${escapeHtml(pathStr)}</div>` : ''}
+            </div>
+        `;
+    });
+    
+    items.forEach(item => {
+        const pathStr = item.path.map(p => p.name).join(' > ');
+        html += `
+            <div class="suggestion-item" data-type="item" data-id="${item.id}">
+                <div>
+                    <span class="suggestion-type item">Item</span>
+                    <span class="suggestion-name">📌 ${escapeHtml(item.name)}</span>
+                </div>
+                <div class="suggestion-path">${escapeHtml(pathStr)}</div>
+            </div>
+        `;
+    });
+    
+    container.innerHTML = html;
+    container.classList.add('show');
+}
+
+function hideSuggestions() {
+    const container = document.getElementById('search-suggestions');
+    container.classList.remove('show');
+    currentSuggestionIndex = -1;
+}
+
+function navigateSuggestions(direction) {
+    const container = document.getElementById('search-suggestions');
+    const items = container.querySelectorAll('.suggestion-item');
+    
+    if (items.length === 0) return;
+    
+    // Remove current selection
+    if (currentSuggestionIndex >= 0 && currentSuggestionIndex < items.length) {
+        items[currentSuggestionIndex].classList.remove('selected');
+    }
+    
+    // Update index
+    if (direction === 'down') {
+        currentSuggestionIndex = (currentSuggestionIndex + 1) % items.length;
+    } else if (direction === 'up') {
+        currentSuggestionIndex = currentSuggestionIndex <= 0 ? items.length - 1 : currentSuggestionIndex - 1;
+    }
+    
+    // Add new selection
+    items[currentSuggestionIndex].classList.add('selected');
+    items[currentSuggestionIndex].scrollIntoView({ block: 'nearest' });
+}
+
+function selectCurrentSuggestion() {
+    const container = document.getElementById('search-suggestions');
+    const items = container.querySelectorAll('.suggestion-item');
+    
+    if (currentSuggestionIndex >= 0 && currentSuggestionIndex < items.length) {
+        items[currentSuggestionIndex].click();
+        return true;
+    }
+    return false;
+}
+
+function renderPathBreadcrumb(path) {
+    if (!path || path.length === 0) {
+        return '<div class="result-path">📍 Root</div>';
+    }
+    
+    const pathParts = path.map((p, index) => 
+        `<span class="result-path-part">${escapeHtml(p.name)}</span>`
+    ).join('<span class="result-path-separator">›</span>');
+    
+    return `<div class="result-path">📍 ${pathParts}</div>`;
 }
 
 function renderSearchResults(results) {
@@ -777,15 +896,26 @@ function renderSearchResults(results) {
     
     if (results.boxes.length > 0) {
         html += '<div class="search-section"><h3>Boxes</h3>';
-        html += results.boxes.map(box => renderBox(box)).join('');
+        results.boxes.forEach(box => {
+            html += '<div class="search-result-item">';
+            html += renderPathBreadcrumb(box.path);
+            html += renderBox(box);
+            html += '</div>';
+        });
         html += '</div>';
     }
     
     if (results.items.length > 0) {
         html += '<div class="search-section"><h3>Items</h3>';
-        html += '<div class="items-list">';
-        html += results.items.map(item => renderItem(item)).join('');
-        html += '</div></div>';
+        results.items.forEach(item => {
+            html += '<div class="search-result-item">';
+            html += renderPathBreadcrumb(item.path);
+            html += '<div class="items-list">';
+            html += renderItem(item);
+            html += '</div>';
+            html += '</div>';
+        });
+        html += '</div>';
     }
     
     container.innerHTML = html;
@@ -796,6 +926,7 @@ function clearSearch() {
     document.getElementById('search-input').value = '';
     document.getElementById('search-results').style.display = 'none';
     document.getElementById('hierarchy-view').style.display = 'block';
+    hideSuggestions();
     currentBoxId = null;
     localStorage.removeItem('currentBoxId');
     const treeNodes = document.querySelectorAll('.tree-node');
@@ -1032,9 +1163,60 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
     
-    document.getElementById('search-input').addEventListener('keypress', (e) => {
+    // Search input with autocomplete
+    document.getElementById('search-input').addEventListener('input', (e) => {
+        const query = e.target.value.trim();
+        
+        // Clear any pending search timeout
+        if (searchTimeout) {
+            clearTimeout(searchTimeout);
+        }
+        
+        // Debounce the search - wait 300ms after user stops typing
+        if (query) {
+            searchTimeout = setTimeout(() => {
+                showSuggestions(query);
+            }, 300);
+        } else {
+            hideSuggestions();
+        }
+    });
+    
+    document.getElementById('search-input').addEventListener('keydown', (e) => {
+        const suggestionsVisible = document.getElementById('search-suggestions').classList.contains('show');
+        
         if (e.key === 'Enter') {
-            document.getElementById('search-btn').click();
+            e.preventDefault();
+            if (suggestionsVisible && !selectCurrentSuggestion()) {
+                document.getElementById('search-btn').click();
+            } else if (!suggestionsVisible) {
+                document.getElementById('search-btn').click();
+            }
+        } else if (e.key === 'ArrowDown' && suggestionsVisible) {
+            e.preventDefault();
+            navigateSuggestions('down');
+        } else if (e.key === 'ArrowUp' && suggestionsVisible) {
+            e.preventDefault();
+            navigateSuggestions('up');
+        } else if (e.key === 'Escape') {
+            hideSuggestions();
+        }
+    });
+    
+    // Close suggestions when clicking outside
+    document.addEventListener('click', (e) => {
+        const searchContainer = document.querySelector('.search-container');
+        if (searchContainer && !searchContainer.contains(e.target)) {
+            hideSuggestions();
+        }
+    });
+    
+    // Handle suggestion item clicks with event delegation
+    document.getElementById('search-suggestions').addEventListener('click', (e) => {
+        const suggestionItem = e.target.closest('.suggestion-item');
+        if (suggestionItem) {
+            const query = document.getElementById('search-input').value;
+            search(query);
         }
     });
     

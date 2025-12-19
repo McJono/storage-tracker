@@ -230,7 +230,7 @@ class StorageTracker {
     const lowerQuery = query.toLowerCase();
 
     for (const box of this.rootBoxes) {
-      this._searchRecursive(box, lowerQuery, results);
+      this._searchRecursive(box, lowerQuery, results, []);
     }
 
     return results;
@@ -239,24 +239,33 @@ class StorageTracker {
   /**
    * Helper method for recursive search
    */
-  _searchRecursive(box, query, results) {
+  _searchRecursive(box, query, results, parentPath) {
+    // Current path including this box
+    const currentPath = [...parentPath, { id: box.id, name: box.name }];
+    
     // Search box
     if (box.name.toLowerCase().includes(query) || 
         box.description.toLowerCase().includes(query)) {
-      results.boxes.push(box);
+      results.boxes.push({
+        box: box,
+        path: parentPath // Path does not include the matched box itself
+      });
     }
 
     // Search items in this box
     for (const item of box.items) {
       if (item.name.toLowerCase().includes(query) || 
           item.description.toLowerCase().includes(query)) {
-        results.items.push(item);
+        results.items.push({
+          item: item,
+          path: currentPath // Path includes all boxes containing the item
+        });
       }
     }
 
     // Search nested boxes
     for (const nestedBox of box.boxes) {
-      this._searchRecursive(nestedBox, query, results);
+      this._searchRecursive(nestedBox, query, results, currentPath);
     }
   }
 

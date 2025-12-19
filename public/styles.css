@@ -309,6 +309,7 @@ body {
     display: flex;
     gap: 0.5rem;
     margin-bottom: 1.5rem;
+    position: relative;
 }
 
 .search-container input {
@@ -316,6 +317,86 @@ body {
     padding: 0.5rem;
     border: 1px solid #ddd;
     border-radius: 5px;
+}
+
+/* Search autocomplete dropdown */
+.search-suggestions {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 40px; /* Leave space for search button */
+    background: white;
+    border: 1px solid #ddd;
+    border-top: none;
+    border-radius: 0 0 5px 5px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    max-height: 300px;
+    overflow-y: auto;
+    z-index: 1000;
+    display: none;
+}
+
+.search-suggestions.show {
+    display: block;
+}
+
+.suggestion-item {
+    padding: 0.75rem;
+    cursor: pointer;
+    border-bottom: 1px solid #f0f0f0;
+    transition: background-color 0.2s;
+}
+
+.suggestion-item:last-child {
+    border-bottom: none;
+}
+
+.suggestion-item:hover {
+    background-color: #f8f9fa;
+}
+
+.suggestion-item.selected {
+    background-color: #e9ecef;
+}
+
+.suggestion-type {
+    display: inline-block;
+    font-size: 0.75rem;
+    padding: 0.125rem 0.5rem;
+    border-radius: 3px;
+    margin-right: 0.5rem;
+    font-weight: 500;
+}
+
+.suggestion-type.box {
+    background-color: #e3f2fd;
+    color: #1976d2;
+}
+
+.suggestion-type.item {
+    background-color: #fff3e0;
+    color: #f57c00;
+}
+
+.suggestion-name {
+    font-weight: 500;
+    color: #333;
+}
+
+.suggestion-path {
+    font-size: 0.75rem;
+    color: #999;
+    margin-top: 0.25rem;
+}
+
+.suggestion-path-separator {
+    margin: 0 0.25rem;
+}
+
+.no-suggestions {
+    padding: 0.75rem;
+    color: #999;
+    text-align: center;
 }
 
 .stats-container {
@@ -628,6 +709,29 @@ body {
 .search-section h3 {
     margin-bottom: 1rem;
     color: #555;
+}
+
+.search-result-item {
+    margin-bottom: 1rem;
+}
+
+.result-path {
+    font-size: 0.875rem;
+    color: #999;
+    margin-bottom: 0.5rem;
+    padding: 0.25rem 0.5rem;
+    background-color: #f8f9fa;
+    border-radius: 3px;
+    display: inline-block;
+}
+
+.result-path-part {
+    display: inline;
+}
+
+.result-path-separator {
+    margin: 0 0.5rem;
+    color: #ccc;
 }
 
 /* Modal */
