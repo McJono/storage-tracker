@@ -163,6 +163,26 @@ body {
     background: #c82333;
 }
 
+.btn-success {
+    background: #28a745;
+    color: white;
+    padding: 0.5rem 1rem;
+}
+
+.btn-success:hover {
+    background: #218838;
+}
+
+.btn-warning {
+    background: #ffc107;
+    color: #333;
+    padding: 0.5rem 1rem;
+}
+
+.btn-warning:hover {
+    background: #e0a800;
+}
+
 .btn-full {
     width: 100%;
 }
@@ -727,6 +747,16 @@ body {
 
 .result-path-part {
     display: inline;
+}
+
+.result-path-part.clickable {
+    cursor: pointer;
+    color: #667eea;
+    text-decoration: underline;
+}
+
+.result-path-part.clickable:hover {
+    color: #764ba2;
 }
 
 .result-path-separator {

@@ -260,6 +260,15 @@ function attachTreeEventListeners() {
         node.addEventListener('click', async (e) => {
             const boxId = e.currentTarget.dataset.boxId;
             
+            // Clear search if active
+            const searchResults = document.getElementById('search-results');
+            if (searchResults.style.display !== 'none') {
+                document.getElementById('search-input').value = '';
+                searchResults.style.display = 'none';
+                document.getElementById('hierarchy-view').style.display = 'block';
+                hideSuggestions();
+            }
+            
             // Update selected state
             document.querySelectorAll('.tree-node').forEach(n => n.classList.remove('selected'));
             e.currentTarget.classList.add('selected');
@@ -358,6 +367,8 @@ function renderItem(item) {
                     <span>${item.amount > 0 ? `${item.amount} × ` : ''}${escapeHtml(item.name)}</span>
                 </div>
                 <div class="item-actions">
+                    <button class="btn btn-success btn-increment-item" data-item-id="${item.id}" title="Add items">+</button>
+                    <button class="btn btn-warning btn-decrement-item" data-item-id="${item.id}" title="Remove items">−</button>
                     <button class="btn btn-secondary btn-edit-item" data-item-id="${item.id}">Edit</button>
                     <button class="btn btn-danger btn-delete-item" data-item-id="${item.id}">Delete</button>
                 </div>
@@ -620,6 +631,24 @@ function attachBoxEventListeners() {
         });
     });
     
+    // Increment item buttons
+    document.querySelectorAll('.btn-increment-item').forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+            e.stopPropagation();
+            const itemId = e.target.dataset.itemId;
+            openTransactionModal(itemId, 'buy');
+        });
+    });
+    
+    // Decrement item buttons
+    document.querySelectorAll('.btn-decrement-item').forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+            e.stopPropagation();
+            const itemId = e.target.dataset.itemId;
+            openTransactionModal(itemId, 'sell');
+        });
+    });
+    
     // Edit item buttons
     document.querySelectorAll('.btn-edit-item').forEach(btn => {
         btn.addEventListener('click', async (e) => {
@@ -873,7 +902,7 @@ function renderPathBreadcrumb(path) {
     }
     
     const pathParts = path.map((p, index) => 
-        `<span class="result-path-part">${escapeHtml(p.name)}</span>`
+        `<span class="result-path-part clickable" data-box-id="${p.id}">${escapeHtml(p.name)}</span>`
     ).join('<span class="result-path-separator">›</span>');
     
     return `<div class="result-path">📍 ${pathParts}</div>`;
@@ -920,6 +949,33 @@ function renderSearchResults(results) {
     
     container.innerHTML = html;
     attachBoxEventListeners();
+    attachBreadcrumbListeners();
+}
+
+function attachBreadcrumbListeners() {
+    // Attach click listeners to breadcrumb path parts
+    document.querySelectorAll('.result-path-part.clickable').forEach(part => {
+        part.addEventListener('click', async (e) => {
+            e.stopPropagation();
+            const boxId = e.currentTarget.dataset.boxId;
+            
+            // Clear search and navigate to the box
+            clearSearch();
+            
+            // Update selected state in tree
+            document.querySelectorAll('.tree-node').forEach(n => n.classList.remove('selected'));
+            const selectedNode = document.querySelector(`.tree-node[data-box-id="${boxId}"]`);
+            if (selectedNode) {
+                selectedNode.classList.add('selected');
+            }
+            
+            currentBoxId = boxId;
+            localStorage.setItem('currentBoxId', boxId);
+            
+            // Load and display the selected box
+            await displayBox(boxId);
+        });
+    });
 }
 
 function clearSearch() {
@@ -927,12 +983,6 @@ function clearSearch() {
     document.getElementById('search-results').style.display = 'none';
     document.getElementById('hierarchy-view').style.display = 'block';
     hideSuggestions();
-    currentBoxId = null;
-    localStorage.removeItem('currentBoxId');
-    const treeNodes = document.querySelectorAll('.tree-node');
-    if (treeNodes.length > 0) {
-        treeNodes.forEach(n => n.classList.remove('selected'));
-    }
 }
 
 // Modal Functions
@@ -998,6 +1048,31 @@ async function populateBoxDropdown() {
     }
 }
 
+async function openTransactionModal(itemId, type) {
+    const modal = document.getElementById('transaction-modal');
+    const title = document.getElementById('transaction-modal-title');
+    const form = document.getElementById('transaction-form');
+    const errorDiv = document.getElementById('transaction-error');
+    
+    // Reset form
+    form.reset();
+    errorDiv.textContent = '';
+    errorDiv.classList.remove('show');
+    
+    // Set transaction type
+    document.getElementById('transaction-item-id').value = itemId;
+    document.getElementById('transaction-type').value = type;
+    
+    // Set modal title
+    if (type === 'buy') {
+        title.textContent = 'Add Items (Purchase)';
+    } else {
+        title.textContent = 'Remove Items (Sell)';
+    }
+    
+    modal.classList.add('show');
+}
+
 async function openItemModal(itemId = null, boxId = null) {
     const modal = document.getElementById('item-modal');
     const title = document.getElementById('item-modal-title');
@@ -1022,6 +1097,8 @@ async function openItemModal(itemId = null, boxId = null) {
             document.getElementById('item-bought-price').value = item.boughtPrice || '';
             document.getElementById('item-sold-amount').value = item.soldAmount || '';
             document.getElementById('item-sold-price').value = item.soldPrice || '';
+            // Set the box ID to the current box we're viewing
+            document.getElementById('item-box-id').value = currentBoxId || '';
         } catch (error) {
             alert('Error loading item: ' + error.message);
             return;
@@ -1264,6 +1341,11 @@ document.addEventListener('DOMContentLoaded', () => {
         
         try {
             if (id) {
+                // When editing, ensure currentBoxId is set if we have a boxId
+                if (boxId && !currentBoxId) {
+                    currentBoxId = boxId;
+                    localStorage.setItem('currentBoxId', boxId);
+                }
                 await updateItem(id, {
                     name,
                     description,
@@ -1277,6 +1359,64 @@ document.addEventListener('DOMContentLoaded', () => {
                 await createItem(name, description, boxId, amount, boughtAmount, boughtPrice, soldAmount, soldPrice);
             }
             closeModal('item-modal');
+        } catch (error) {
+            errorDiv.textContent = error.message;
+            errorDiv.classList.add('show');
+        }
+    });
+    
+    // Transaction form handler (for +/- buttons)
+    document.getElementById('transaction-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const errorDiv = document.getElementById('transaction-error');
+        errorDiv.textContent = '';
+        errorDiv.classList.remove('show');
+        
+        const itemId = document.getElementById('transaction-item-id').value;
+        const type = document.getElementById('transaction-type').value;
+        const quantity = parseFloat(document.getElementById('transaction-quantity').value);
+        const price = parseFloat(document.getElementById('transaction-price').value);
+        
+        if (!quantity || quantity <= 0) {
+            errorDiv.textContent = 'Please enter a valid quantity';
+            errorDiv.classList.add('show');
+            return;
+        }
+        
+        if (!price || price < 0) {
+            errorDiv.textContent = 'Please enter a valid price';
+            errorDiv.classList.add('show');
+            return;
+        }
+        
+        try {
+            // Get current item data
+            const item = await apiCall(`/api/items/${itemId}`);
+            
+            let updates;
+            if (type === 'buy') {
+                // Adding items (purchase)
+                updates = {
+                    amount: item.amount + quantity,
+                    boughtAmount: item.boughtAmount + quantity,
+                    boughtPrice: ((item.boughtAmount * item.boughtPrice) + (quantity * price)) / (item.boughtAmount + quantity)
+                };
+            } else {
+                // Removing items (sell)
+                if (quantity > item.amount) {
+                    errorDiv.textContent = `Cannot sell ${quantity} items. Only ${item.amount} available.`;
+                    errorDiv.classList.add('show');
+                    return;
+                }
+                updates = {
+                    amount: Math.max(0, item.amount - quantity),
+                    soldAmount: item.soldAmount + quantity,
+                    soldPrice: item.soldPrice + (quantity * price)
+                };
+            }
+            
+            await updateItem(itemId, updates);
+            closeModal('transaction-modal');
         } catch (error) {
             errorDiv.textContent = error.message;
             errorDiv.classList.add('show');
