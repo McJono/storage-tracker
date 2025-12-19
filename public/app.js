@@ -825,14 +825,6 @@ function renderSuggestions(results) {
     
     container.innerHTML = html;
     container.classList.add('show');
-    
-    // Attach click handlers
-    container.querySelectorAll('.suggestion-item').forEach(item => {
-        item.addEventListener('click', () => {
-            const query = document.getElementById('search-input').value;
-            search(query);
-        });
-    });
 }
 
 function hideSuggestions() {
@@ -1216,6 +1208,15 @@ document.addEventListener('DOMContentLoaded', () => {
         const searchContainer = document.querySelector('.search-container');
         if (searchContainer && !searchContainer.contains(e.target)) {
             hideSuggestions();
+        }
+    });
+    
+    // Handle suggestion item clicks with event delegation
+    document.getElementById('search-suggestions').addEventListener('click', (e) => {
+        const suggestionItem = e.target.closest('.suggestion-item');
+        if (suggestionItem) {
+            const query = document.getElementById('search-input').value;
+            search(query);
         }
     });
     
