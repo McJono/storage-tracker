@@ -794,19 +794,21 @@ app.use((err, req, res, next) => {
 // Check if SSL certificates are configured
 const sslKeyPath = process.env.SSL_KEY_PATH;
 const sslCertPath = process.env.SSL_CERT_PATH;
-const useSSL = sslKeyPath && sslCertPath;
+const sslConfigured = sslKeyPath && sslCertPath;
 
-if (useSSL) {
+function fallbackToHTTP(reason) {
+  console.error(reason);
+  console.error('Starting server in HTTP mode instead.');
+  startHTTPServer(false);
+}
+
+if (sslConfigured) {
   // Try to load SSL certificates
   try {
     if (!fs.existsSync(sslKeyPath)) {
-      console.error(`SSL key file not found: ${sslKeyPath}`);
-      console.error('Starting server in HTTP mode instead.');
-      startHTTPServer(false);
+      fallbackToHTTP(`SSL key file not found: ${sslKeyPath}`);
     } else if (!fs.existsSync(sslCertPath)) {
-      console.error(`SSL certificate file not found: ${sslCertPath}`);
-      console.error('Starting server in HTTP mode instead.');
-      startHTTPServer(false);
+      fallbackToHTTP(`SSL certificate file not found: ${sslCertPath}`);
     } else {
       const httpsOptions = {
         key: fs.readFileSync(sslKeyPath),
@@ -825,9 +827,7 @@ if (useSSL) {
       });
     }
   } catch (error) {
-    console.error('Error loading SSL certificates:', error.message);
-    console.error('Starting server in HTTP mode instead.');
-    startHTTPServer(false);
+    fallbackToHTTP(`Error loading SSL certificates: ${error.message}`);
   }
 } else {
   startHTTPServer(true);
