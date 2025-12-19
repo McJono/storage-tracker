@@ -1395,11 +1395,14 @@ document.addEventListener('DOMContentLoaded', () => {
             
             let updates;
             if (type === 'buy') {
-                // Adding items (purchase)
+                // Adding items (purchase) - calculate weighted average price
+                const totalBought = item.boughtAmount + quantity;
+                const newBoughtPrice = ((item.boughtAmount * (item.boughtPrice || 0)) + (quantity * price)) / totalBought;
+                    
                 updates = {
                     amount: item.amount + quantity,
-                    boughtAmount: item.boughtAmount + quantity,
-                    boughtPrice: ((item.boughtAmount * item.boughtPrice) + (quantity * price)) / (item.boughtAmount + quantity)
+                    boughtAmount: totalBought,
+                    boughtPrice: newBoughtPrice
                 };
             } else {
                 // Removing items (sell)
@@ -1408,6 +1411,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     errorDiv.classList.add('show');
                     return;
                 }
+                // Note: soldPrice stores total revenue, average is calculated when displayed
                 updates = {
                     amount: Math.max(0, item.amount - quantity),
                     soldAmount: item.soldAmount + quantity,
