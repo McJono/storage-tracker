@@ -571,8 +571,14 @@ app.get('/api/search', authenticate, (req, res) => {
 
     res.json({
       query: q,
-      boxes: results.boxes.map(b => b.toJSON()),
-      items: results.items.map(i => i.toJSON())
+      boxes: results.boxes.map(result => ({
+        ...result.box.toJSON(),
+        path: result.path
+      })),
+      items: results.items.map(result => ({
+        ...result.item.toJSON(),
+        path: result.path
+      }))
     });
   } catch (error) {
     res.status(500).json({ error: error.message });

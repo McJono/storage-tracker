@@ -165,14 +165,32 @@ describe('StorageTracker', () => {
     
     const results1 = tracker.search('garage');
     expect(results1.boxes).toHaveLength(1);
-    expect(results1.boxes[0]).toBe(garage);
+    expect(results1.boxes[0].box).toBe(garage);
+    expect(results1.boxes[0].path).toEqual([]);
     
     const results2 = tracker.search('hammer');
     expect(results2.items).toHaveLength(1);
-    expect(results2.items[0]).toBe(hammer);
+    expect(results2.items[0].item).toBe(hammer);
+    expect(results2.items[0].path).toEqual([{ id: garage.id, name: 'Garage' }]);
     
     const results3 = tracker.search('tool');
     expect(results3.boxes).toHaveLength(1);
+  });
+
+  test('should include hierarchy path in search results', () => {
+    const garage = tracker.createBox('Garage');
+    const shelf = tracker.createBox('Shelf', 'Metal shelf', garage.id);
+    const toolBox = tracker.createBox('Tool Box', 'Red toolbox', shelf.id);
+    const hammer = tracker.createItem('Hammer', '', toolBox.id);
+    
+    const results = tracker.search('hammer');
+    expect(results.items).toHaveLength(1);
+    expect(results.items[0].item).toBe(hammer);
+    expect(results.items[0].path).toEqual([
+      { id: garage.id, name: 'Garage' },
+      { id: shelf.id, name: 'Shelf' },
+      { id: toolBox.id, name: 'Tool Box' }
+    ]);
   });
 
   test('should get statistics', () => {
