@@ -50,9 +50,11 @@
    - Must be changed via JWT_SECRET environment variable for production
    - See .env.example for configuration
 
-3. **HTTPS:** Not enforced
-   - Development server runs on HTTP
-   - Production deployment should use HTTPS/TLS
+3. **HTTPS:** Supported but optional
+   - Server supports SSL/HTTPS via environment configuration
+   - Set SSL_KEY_PATH and SSL_CERT_PATH in .env to enable
+   - Defaults to HTTP mode if not configured
+   - Production deployments should always use HTTPS
 
 4. **Session Management:** Basic implementation
    - No session revocation mechanism
@@ -86,9 +88,14 @@
    ```
 
 2. **Enable HTTPS**
-   - Use a reverse proxy (nginx, Apache)
-   - Obtain SSL/TLS certificate (Let's Encrypt)
-   - Force HTTPS redirects
+   - Configure SSL certificates in .env file:
+     ```bash
+     SSL_KEY_PATH=/path/to/privkey.pem
+     SSL_CERT_PATH=/path/to/fullchain.pem
+     ```
+   - Use Let's Encrypt for free certificates
+   - Update APP_URL to use https://
+   - For additional security, use a reverse proxy (nginx, Apache) with HSTS headers
 
 3. **Add Rate Limiting**
    ```bash

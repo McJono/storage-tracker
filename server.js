@@ -13,6 +13,9 @@ try {
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
+const fs = require('fs');
+const https = require('https');
+const http = require('http');
 const UserManager = require('./src/UserManager');
 const MultiUserStorageTracker = require('./src/MultiUserStorageTracker');
 const LoginTokenManager = require('./src/LoginTokenManager');
@@ -788,9 +791,64 @@ app.use((err, req, res, next) => {
 
 // ============= Start Server =============
 
-app.listen(PORT, () => {
-  console.log(`Storage Tracker API server running on http://localhost:${PORT}`);
-  console.log(`Frontend available at http://localhost:${PORT}`);
-});
+// Helper function to start HTTP server
+function startHTTPServer(showNote) {
+  http.createServer(app).listen(PORT, () => {
+    console.log(`Storage Tracker API server running on http://localhost:${PORT}`);
+    console.log(`Frontend available at http://localhost:${PORT}`);
+    if (showNote) {
+      console.log('');
+      console.log('Note: Running in HTTP mode. For HTTPS, configure SSL_KEY_PATH and SSL_CERT_PATH in .env');
+    }
+  });
+}
+
+// Helper function to fall back to HTTP mode
+function fallbackToHTTP(reason) {
+  console.error(reason);
+  console.error('Starting server in HTTP mode instead.');
+  startHTTPServer(false);
+}
+
+// Check if SSL certificates are configured
+const sslKeyPath = process.env.SSL_KEY_PATH;
+const sslCertPath = process.env.SSL_CERT_PATH;
+const sslConfigured = sslKeyPath && sslCertPath;
+
+if (sslConfigured) {
+  // Try to load SSL certificates
+  try {
+    if (!fs.existsSync(sslKeyPath)) {
+      fallbackToHTTP(`SSL key file not found: ${sslKeyPath}`);
+    } else if (!fs.existsSync(sslCertPath)) {
+      fallbackToHTTP(`SSL certificate file not found: ${sslCertPath}`);
+    } else {
+      const httpsOptions = {
+        key: fs.readFileSync(sslKeyPath),
+        cert: fs.readFileSync(sslCertPath)
+      };
+      
+      // Optionally load CA certificate if provided
+      if (process.env.SSL_CA_PATH && fs.existsSync(process.env.SSL_CA_PATH)) {
+        try {
+          httpsOptions.ca = fs.readFileSync(process.env.SSL_CA_PATH);
+        } catch (caError) {
+          console.warn(`Warning: Could not load CA certificate from ${process.env.SSL_CA_PATH}: ${caError.message}`);
+          console.warn('Continuing without CA certificate...');
+        }
+      }
+      
+      https.createServer(httpsOptions, app).listen(PORT, () => {
+        console.log(`Storage Tracker API server running on https://localhost:${PORT}`);
+        console.log(`Frontend available at https://localhost:${PORT}`);
+        console.log('SSL/HTTPS enabled');
+      });
+    }
+  } catch (error) {
+    fallbackToHTTP(`Error loading SSL certificates: ${error.message}`);
+  }
+} else {
+  startHTTPServer(true);
+}
 
 module.exports = app;
