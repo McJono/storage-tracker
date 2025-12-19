@@ -791,16 +791,29 @@ app.use((err, req, res, next) => {
 
 // ============= Start Server =============
 
-// Check if SSL certificates are configured
-const sslKeyPath = process.env.SSL_KEY_PATH;
-const sslCertPath = process.env.SSL_CERT_PATH;
-const sslConfigured = sslKeyPath && sslCertPath;
+// Helper function to start HTTP server
+function startHTTPServer(showNote) {
+  http.createServer(app).listen(PORT, () => {
+    console.log(`Storage Tracker API server running on http://localhost:${PORT}`);
+    console.log(`Frontend available at http://localhost:${PORT}`);
+    if (showNote) {
+      console.log('');
+      console.log('Note: Running in HTTP mode. For HTTPS, configure SSL_KEY_PATH and SSL_CERT_PATH in .env');
+    }
+  });
+}
 
+// Helper function to fall back to HTTP mode
 function fallbackToHTTP(reason) {
   console.error(reason);
   console.error('Starting server in HTTP mode instead.');
   startHTTPServer(false);
 }
+
+// Check if SSL certificates are configured
+const sslKeyPath = process.env.SSL_KEY_PATH;
+const sslCertPath = process.env.SSL_CERT_PATH;
+const sslConfigured = sslKeyPath && sslCertPath;
 
 if (sslConfigured) {
   // Try to load SSL certificates
@@ -817,7 +830,12 @@ if (sslConfigured) {
       
       // Optionally load CA certificate if provided
       if (process.env.SSL_CA_PATH && fs.existsSync(process.env.SSL_CA_PATH)) {
-        httpsOptions.ca = fs.readFileSync(process.env.SSL_CA_PATH);
+        try {
+          httpsOptions.ca = fs.readFileSync(process.env.SSL_CA_PATH);
+        } catch (caError) {
+          console.warn(`Warning: Could not load CA certificate from ${process.env.SSL_CA_PATH}: ${caError.message}`);
+          console.warn('Continuing without CA certificate...');
+        }
       }
       
       https.createServer(httpsOptions, app).listen(PORT, () => {
@@ -831,17 +849,6 @@ if (sslConfigured) {
   }
 } else {
   startHTTPServer(true);
-}
-
-function startHTTPServer(showNote) {
-  http.createServer(app).listen(PORT, () => {
-    console.log(`Storage Tracker API server running on http://localhost:${PORT}`);
-    console.log(`Frontend available at http://localhost:${PORT}`);
-    if (showNote) {
-      console.log('');
-      console.log('Note: Running in HTTP mode. For HTTPS, configure SSL_KEY_PATH and SSL_CERT_PATH in .env');
-    }
-  });
 }
 
 module.exports = app;
