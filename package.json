@@ -8,11 +8,7 @@
   },
   "scripts": {
     "start": "node index.js",
-    "server": "node server.js",
-    "demo": "node demo.js",
-    "test": "jest",
-    "test:watch": "jest --watch",
-    "test:coverage": "jest --coverage"
+    "server": "node server.js"
   },
   "keywords": [
     "storage",

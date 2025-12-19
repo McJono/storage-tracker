@@ -10,7 +10,6 @@ coverage/
 dist/
 build/
 data/*.json
-!data/example-storage.json
 tests/test-storage.json
 *.swp
 *.swo

@@ -32,6 +32,39 @@ npm install
 
 ## Configuration
 
+### SSL/HTTPS Setup (Optional - Recommended for Production)
+
+To enable HTTPS with SSL certificates, configure the SSL settings in your `.env` file:
+
+```env
+# SSL/HTTPS Configuration
+SSL_KEY_PATH=/path/to/your/private-key.pem
+SSL_CERT_PATH=/path/to/your/certificate.pem
+SSL_CA_PATH=/path/to/your/ca-bundle.pem  # Optional: for intermediate certificates
+```
+
+**Obtaining SSL Certificates:**
+
+1. **For Production (Free):**
+   - Use [Let's Encrypt](https://letsencrypt.org/) with [Certbot](https://certbot.eff.org/)
+   - Certificates are free and auto-renewing
+   - Example paths: `/etc/letsencrypt/live/yourdomain.com/privkey.pem` and `fullchain.pem`
+
+2. **For Development/Testing:**
+   - Generate self-signed certificates:
+     ```bash
+     openssl req -x509 -newkey rsa:4096 -keyout key.pem -out cert.pem -days 365 -nodes
+     ```
+   - Note: Self-signed certificates will show browser warnings
+
+3. **No SSL Configuration:**
+   - Leave SSL variables blank or commented out in `.env`
+   - Server will run in HTTP mode (default)
+
+**After configuring SSL:**
+- Update `APP_URL` in `.env` to use `https://` instead of `http://`
+- The server will automatically start in HTTPS mode when SSL paths are configured
+
 ### SMTP Setup (Required for Passwordless Authentication)
 
 To enable passwordless email authentication, you need to configure SMTP settings. Create a `.env` file in the project root:
@@ -330,26 +363,6 @@ All API requests (except auth) require a JWT token in the `Authorization` header
 Authorization: Bearer <your-token>
 ```
 
-## Development
-
-### Run Tests
-
-```bash
-npm test
-```
-
-### Run Tests in Watch Mode
-
-```bash
-npm run test:watch
-```
-
-### Run Tests with Coverage
-
-```bash
-npm run test:coverage
-```
-
 ## Data Storage
 
 ### Web Mode
@@ -380,9 +393,6 @@ The project follows a clean, modular architecture:
 - `public/index.html` - Web UI structure
 - `public/styles.css` - Web UI styling
 - `public/app.js` - Web UI logic
-
-### Tests
-- `tests/` - Comprehensive test suite
 
 ## API Usage
 

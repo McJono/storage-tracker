@@ -13,6 +13,9 @@ try {
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
+const fs = require('fs');
+const https = require('https');
+const http = require('http');
 const UserManager = require('./src/UserManager');
 const MultiUserStorageTracker = require('./src/MultiUserStorageTracker');
 const LoginTokenManager = require('./src/LoginTokenManager');
@@ -788,9 +791,57 @@ app.use((err, req, res, next) => {
 
 // ============= Start Server =============
 
-app.listen(PORT, () => {
-  console.log(`Storage Tracker API server running on http://localhost:${PORT}`);
-  console.log(`Frontend available at http://localhost:${PORT}`);
-});
+// Check if SSL certificates are configured
+const sslKeyPath = process.env.SSL_KEY_PATH;
+const sslCertPath = process.env.SSL_CERT_PATH;
+const useSSL = sslKeyPath && sslCertPath;
+
+if (useSSL) {
+  // Try to load SSL certificates
+  try {
+    if (!fs.existsSync(sslKeyPath)) {
+      console.error(`SSL key file not found: ${sslKeyPath}`);
+      console.error('Starting server in HTTP mode instead.');
+      startHTTPServer();
+    } else if (!fs.existsSync(sslCertPath)) {
+      console.error(`SSL certificate file not found: ${sslCertPath}`);
+      console.error('Starting server in HTTP mode instead.');
+      startHTTPServer();
+    } else {
+      const httpsOptions = {
+        key: fs.readFileSync(sslKeyPath),
+        cert: fs.readFileSync(sslCertPath)
+      };
+      
+      // Optionally load CA certificate if provided
+      if (process.env.SSL_CA_PATH && fs.existsSync(process.env.SSL_CA_PATH)) {
+        httpsOptions.ca = fs.readFileSync(process.env.SSL_CA_PATH);
+      }
+      
+      https.createServer(httpsOptions, app).listen(PORT, () => {
+        console.log(`Storage Tracker API server running on https://localhost:${PORT}`);
+        console.log(`Frontend available at https://localhost:${PORT}`);
+        console.log('SSL/HTTPS enabled');
+      });
+    }
+  } catch (error) {
+    console.error('Error loading SSL certificates:', error.message);
+    console.error('Starting server in HTTP mode instead.');
+    startHTTPServer();
+  }
+} else {
+  startHTTPServer();
+}
+
+function startHTTPServer() {
+  http.createServer(app).listen(PORT, () => {
+    console.log(`Storage Tracker API server running on http://localhost:${PORT}`);
+    console.log(`Frontend available at http://localhost:${PORT}`);
+    if (!useSSL) {
+      console.log('');
+      console.log('Note: Running in HTTP mode. For HTTPS, configure SSL_KEY_PATH and SSL_CERT_PATH in .env');
+    }
+  });
+}
 
 module.exports = app;
