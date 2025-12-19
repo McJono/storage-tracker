@@ -802,11 +802,11 @@ if (useSSL) {
     if (!fs.existsSync(sslKeyPath)) {
       console.error(`SSL key file not found: ${sslKeyPath}`);
       console.error('Starting server in HTTP mode instead.');
-      startHTTPServer();
+      startHTTPServer(false);
     } else if (!fs.existsSync(sslCertPath)) {
       console.error(`SSL certificate file not found: ${sslCertPath}`);
       console.error('Starting server in HTTP mode instead.');
-      startHTTPServer();
+      startHTTPServer(false);
     } else {
       const httpsOptions = {
         key: fs.readFileSync(sslKeyPath),
@@ -827,17 +827,17 @@ if (useSSL) {
   } catch (error) {
     console.error('Error loading SSL certificates:', error.message);
     console.error('Starting server in HTTP mode instead.');
-    startHTTPServer();
+    startHTTPServer(false);
   }
 } else {
-  startHTTPServer();
+  startHTTPServer(true);
 }
 
-function startHTTPServer() {
+function startHTTPServer(showNote) {
   http.createServer(app).listen(PORT, () => {
     console.log(`Storage Tracker API server running on http://localhost:${PORT}`);
     console.log(`Frontend available at http://localhost:${PORT}`);
-    if (!useSSL) {
+    if (showNote) {
       console.log('');
       console.log('Note: Running in HTTP mode. For HTTPS, configure SSL_KEY_PATH and SSL_CERT_PATH in .env');
     }
