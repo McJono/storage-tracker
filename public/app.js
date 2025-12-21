@@ -173,12 +173,11 @@ async function loadStats() {
 function renderFolderTree(boxes) {
     const container = document.getElementById('folder-tree');
     
-    // Preserve the home button
-    const homeBtn = document.getElementById('home-btn');
-    const homeBtnHTML = homeBtn ? homeBtn.outerHTML : '<button id="home-btn" class="btn btn-secondary btn-full" style="margin-bottom: 0.5rem;">🏠 Home</button>';
+    // Home button HTML constant
+    const HOME_BUTTON_HTML = '<button id="home-btn" class="btn btn-secondary btn-full" style="margin-bottom: 0.5rem;">🏠 Home</button>';
     
     if (!boxes || boxes.length === 0) {
-        container.innerHTML = homeBtnHTML + '<div class="empty-tree">No boxes yet</div>';
+        container.innerHTML = HOME_BUTTON_HTML + '<div class="empty-tree">No boxes yet</div>';
         // Re-attach home button listener
         attachHomeButtonListener();
         return;
@@ -190,7 +189,7 @@ function renderFolderTree(boxes) {
         expandedBoxes.add(item.dataset.boxId);
     });
     
-    container.innerHTML = homeBtnHTML + boxes.map(box => renderTreeNode(box)).join('');
+    container.innerHTML = HOME_BUTTON_HTML + boxes.map(box => renderTreeNode(box)).join('');
     
     // Restore expanded state after re-rendering
     expandedBoxes.forEach(boxId => {
@@ -1266,9 +1265,9 @@ async function goHome() {
 // Attach home button listener
 function attachHomeButtonListener() {
     const homeBtn = document.getElementById('home-btn');
-    if (homeBtn) {
-        homeBtn.replaceWith(homeBtn.cloneNode(true)); // Remove old listeners
-        document.getElementById('home-btn').addEventListener('click', goHome);
+    if (homeBtn && !homeBtn.dataset.listenerAttached) {
+        homeBtn.dataset.listenerAttached = 'true';
+        homeBtn.addEventListener('click', goHome);
     }
 }
 
