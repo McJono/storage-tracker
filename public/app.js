@@ -173,8 +173,14 @@ async function loadStats() {
 function renderFolderTree(boxes) {
     const container = document.getElementById('folder-tree');
     
+    // Preserve the home button
+    const homeBtn = document.getElementById('home-btn');
+    const homeBtnHTML = homeBtn ? homeBtn.outerHTML : '<button id="home-btn" class="btn btn-secondary btn-full" style="margin-bottom: 0.5rem;">🏠 Home</button>';
+    
     if (!boxes || boxes.length === 0) {
-        container.innerHTML = '<div class="empty-tree">No boxes yet</div>';
+        container.innerHTML = homeBtnHTML + '<div class="empty-tree">No boxes yet</div>';
+        // Re-attach home button listener
+        attachHomeButtonListener();
         return;
     }
     
@@ -184,7 +190,7 @@ function renderFolderTree(boxes) {
         expandedBoxes.add(item.dataset.boxId);
     });
     
-    container.innerHTML = boxes.map(box => renderTreeNode(box)).join('');
+    container.innerHTML = homeBtnHTML + boxes.map(box => renderTreeNode(box)).join('');
     
     // Restore expanded state after re-rendering
     expandedBoxes.forEach(boxId => {
@@ -200,6 +206,7 @@ function renderFolderTree(boxes) {
     
     // Attach event listeners
     attachTreeEventListeners();
+    attachHomeButtonListener();
 }
 
 function renderTreeNode(box) {
@@ -684,14 +691,41 @@ async function createBox(name, description, parentBoxId) {
     }
 }
 
-async function updateBox(id, name, description) {
+async function updateBox(id, name, description, newParentBoxId, originalParentId) {
     try {
+        // First update the box name and description
         await apiCall(`/api/boxes/${id}`, {
             method: 'PUT',
             body: JSON.stringify({ name, description })
         });
         
+        // Check if parent has changed
+        const currentParent = newParentBoxId || '';
+        const originalParent = originalParentId || '';
+        
+        if (currentParent !== originalParent) {
+            // Move the box to the new parent
+            await apiCall(`/api/boxes/${id}/move`, {
+                method: 'POST',
+                body: JSON.stringify({ newParentBoxId: newParentBoxId || null })
+            });
+        }
+        
+        // Set the current box to the one we just edited and ensure it's expanded
+        currentBoxId = id;
+        localStorage.setItem('currentBoxId', id);
+        
         await refreshCurrentView();
+        
+        // Expand the box in the tree
+        const treeItem = document.querySelector(`.tree-item[data-box-id="${id}"]`);
+        if (treeItem) {
+            treeItem.classList.add('expanded');
+            const toggle = treeItem.querySelector('.tree-toggle');
+            if (toggle && !toggle.classList.contains('empty')) {
+                toggle.textContent = '▼';
+            }
+        }
     } catch (error) {
         throw error;
     }
@@ -1005,6 +1039,8 @@ async function openBoxModal(boxId = null) {
             document.getElementById('box-id').value = box.id;
             document.getElementById('box-name').value = box.name;
             document.getElementById('box-description').value = box.description || '';
+            // Store the original parent ID to detect changes
+            document.getElementById('box-form').dataset.originalParent = await findBoxParentId(boxId) || '';
         } catch (error) {
             alert('Error loading box: ' + error.message);
             return;
@@ -1013,12 +1049,38 @@ async function openBoxModal(boxId = null) {
         // Create mode
         title.textContent = 'Create Box';
         document.getElementById('box-id').value = '';
+        delete document.getElementById('box-form').dataset.originalParent;
     }
     
     // Populate parent box dropdown
     await populateBoxDropdown();
     
     modal.classList.add('show');
+}
+
+// Helper function to find the parent ID of a box
+async function findBoxParentId(boxId) {
+    try {
+        const data = await apiCall('/api/boxes');
+        
+        function searchParent(boxes, targetId, parentId = null) {
+            for (const box of boxes) {
+                if (box.id === targetId) {
+                    return parentId;
+                }
+                const found = searchParent(box.boxes || [], targetId, box.id);
+                if (found !== undefined) {
+                    return found;
+                }
+            }
+            return undefined;
+        }
+        
+        return searchParent(data.rootBoxes, boxId);
+    } catch (error) {
+        console.error('Error finding parent box:', error);
+        return null;
+    }
 }
 
 async function populateBoxDropdown() {
@@ -1071,6 +1133,14 @@ async function populateBoxDropdown() {
         }
         
         addBoxOptions(data.rootBoxes);
+        
+        // Set the current parent if editing a box
+        if (currentBoxId) {
+            const parentId = await findBoxParentId(currentBoxId);
+            if (parentId) {
+                select.value = parentId;
+            }
+        }
     } catch (error) {
         console.error('Error loading boxes:', error);
     }
@@ -1174,6 +1244,34 @@ function toggleMobileMenu() {
     }
 }
 
+// Home navigation function
+async function goHome() {
+    // Clear search if active
+    clearSearch();
+    
+    // Clear selected box
+    currentBoxId = null;
+    localStorage.removeItem('currentBoxId');
+    
+    // Clear selected state from tree
+    document.querySelectorAll('.tree-node').forEach(n => n.classList.remove('selected'));
+    
+    // Reload data to show root boxes
+    await loadData();
+    
+    // Close mobile menu if open
+    closeMobileMenu();
+}
+
+// Attach home button listener
+function attachHomeButtonListener() {
+    const homeBtn = document.getElementById('home-btn');
+    if (homeBtn) {
+        homeBtn.replaceWith(homeBtn.cloneNode(true)); // Remove old listeners
+        document.getElementById('home-btn').addEventListener('click', goHome);
+    }
+}
+
 // Event Handlers
 document.addEventListener('DOMContentLoaded', () => {
     // Mobile menu toggle
@@ -1181,6 +1279,12 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Close menu when clicking overlay
     document.querySelector('.sidebar-overlay').addEventListener('click', closeMobileMenu);
+    
+    // App title click to go home
+    document.getElementById('app-title').addEventListener('click', goHome);
+    
+    // Home button (will be attached after rendering)
+    attachHomeButtonListener();
     
     // Auth tab switching
     document.querySelectorAll('.tab-button').forEach(btn => {
@@ -1336,10 +1440,11 @@ document.addEventListener('DOMContentLoaded', () => {
         const name = document.getElementById('box-name').value;
         const description = document.getElementById('box-description').value;
         const parentBoxId = document.getElementById('box-parent').value;
+        const originalParent = document.getElementById('box-form').dataset.originalParent;
         
         try {
             if (id) {
-                await updateBox(id, name, description);
+                await updateBox(id, name, description, parentBoxId, originalParent);
             } else {
                 await createBox(name, description, parentBoxId || null);
             }
