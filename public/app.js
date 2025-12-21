@@ -1029,15 +1029,43 @@ async function populateBoxDropdown() {
         const data = await apiCall('/api/boxes');
         select.innerHTML = '<option value="">-- Root Level --</option>';
         
+        // Helper function to find a box by ID in the hierarchy
+        function findBoxById(boxes, targetId) {
+            for (const box of boxes) {
+                if (box.id === targetId) return box;
+                const found = findBoxById(box.boxes || [], targetId);
+                if (found) return found;
+            }
+            return null;
+        }
+        
+        // Helper function to check if a box contains another box as a descendant
+        function boxContainsDescendant(box, targetId) {
+            for (const childBox of box.boxes || []) {
+                if (childBox.id === targetId) return true;
+                if (boxContainsDescendant(childBox, targetId)) return true;
+            }
+            return false;
+        }
+        
+        // Find the current box being edited
+        const currentBox = currentBoxId ? findBoxById(data.rootBoxes, currentBoxId) : null;
+        
         function addBoxOptions(boxes, level = 0) {
             boxes.forEach(box => {
-                // Don't allow selecting the box being edited as its own parent
-                if (box.id !== currentBoxId) {
+                // Don't allow selecting:
+                // 1. The box itself as its own parent
+                // 2. Any descendant of the box (to prevent circular references)
+                const isCurrentBox = box.id === currentBoxId;
+                const isDescendant = currentBox && boxContainsDescendant(currentBox, box.id);
+                
+                if (!isCurrentBox && !isDescendant) {
                     const indent = '  '.repeat(level);
                     select.innerHTML += `<option value="${box.id}">${indent}${box.name}</option>`;
-                    if (box.boxes && box.boxes.length > 0) {
-                        addBoxOptions(box.boxes, level + 1);
-                    }
+                    // Recursively add nested boxes
+                    // Note: If a box is excluded, its descendants are implicitly excluded too,
+                    // which is correct behavior (all descendants of excluded box are also invalid parents)
+                    addBoxOptions(box.boxes || [], level + 1);
                 }
             });
         }
