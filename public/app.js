@@ -1029,10 +1029,21 @@ async function populateBoxDropdown() {
         const data = await apiCall('/api/boxes');
         select.innerHTML = '<option value="">-- Root Level --</option>';
         
+        // Helper function to check if a box contains another box (is an ancestor)
+        function boxContains(box, targetId) {
+            if (box.id === targetId) return true;
+            if (box.boxes && box.boxes.length > 0) {
+                return box.boxes.some(childBox => boxContains(childBox, targetId));
+            }
+            return false;
+        }
+        
         function addBoxOptions(boxes, level = 0) {
             boxes.forEach(box => {
                 // Don't allow selecting the box being edited as its own parent
-                if (box.id !== currentBoxId) {
+                // Also don't allow selecting any descendant of the box being edited
+                // (to prevent circular references)
+                if (box.id !== currentBoxId && !boxContains(box, currentBoxId)) {
                     const indent = '  '.repeat(level);
                     select.innerHTML += `<option value="${box.id}">${indent}${box.name}</option>`;
                     if (box.boxes && box.boxes.length > 0) {

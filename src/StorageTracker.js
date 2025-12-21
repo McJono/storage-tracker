@@ -182,6 +182,19 @@ class StorageTracker {
       throw new Error(`Box with ID ${boxId} not found`);
     }
 
+    // Check if trying to move to a new parent
+    if (newParentBoxId) {
+      const newParent = this.findBox(newParentBoxId);
+      if (!newParent) {
+        throw new Error(`New parent box with ID ${newParentBoxId} not found`);
+      }
+      
+      // Prevent circular reference: check if newParent is a descendant of box
+      if (box.findBox(newParentBoxId)) {
+        throw new Error('Cannot move a box into one of its own descendants');
+      }
+    }
+
     // Remove from current location
     this.deleteBox(boxId);
 
