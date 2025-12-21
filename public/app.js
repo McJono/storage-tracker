@@ -1029,21 +1029,41 @@ async function populateBoxDropdown() {
         const data = await apiCall('/api/boxes');
         select.innerHTML = '<option value="">-- Root Level --</option>';
         
-        // Helper function to check if a box contains another box (is an ancestor)
-        function boxContains(box, targetId) {
-            if (box.id === targetId) return true;
+        // Helper function to find a box by ID in the hierarchy
+        function findBoxById(boxes, targetId) {
+            for (const box of boxes) {
+                if (box.id === targetId) return box;
+                if (box.boxes && box.boxes.length > 0) {
+                    const found = findBoxById(box.boxes, targetId);
+                    if (found) return found;
+                }
+            }
+            return null;
+        }
+        
+        // Helper function to check if a box contains another box as a descendant
+        function boxContainsDescendant(box, targetId) {
             if (box.boxes && box.boxes.length > 0) {
-                return box.boxes.some(childBox => boxContains(childBox, targetId));
+                for (const childBox of box.boxes) {
+                    if (childBox.id === targetId) return true;
+                    if (boxContainsDescendant(childBox, targetId)) return true;
+                }
             }
             return false;
         }
         
+        // Find the current box being edited
+        const currentBox = currentBoxId ? findBoxById(data.rootBoxes, currentBoxId) : null;
+        
         function addBoxOptions(boxes, level = 0) {
             boxes.forEach(box => {
-                // Don't allow selecting the box being edited as its own parent
-                // Also don't allow selecting any descendant of the box being edited
-                // (to prevent circular references)
-                if (box.id !== currentBoxId && !boxContains(box, currentBoxId)) {
+                // Don't allow selecting:
+                // 1. The box itself as its own parent
+                // 2. Any descendant of the box (to prevent circular references)
+                const isCurrentBox = box.id === currentBoxId;
+                const isDescendant = currentBox && boxContainsDescendant(currentBox, box.id);
+                
+                if (!isCurrentBox && !isDescendant) {
                     const indent = '  '.repeat(level);
                     select.innerHTML += `<option value="${box.id}">${indent}${box.name}</option>`;
                     if (box.boxes && box.boxes.length > 0) {
