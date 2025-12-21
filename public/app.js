@@ -1033,21 +1033,17 @@ async function populateBoxDropdown() {
         function findBoxById(boxes, targetId) {
             for (const box of boxes) {
                 if (box.id === targetId) return box;
-                if (box.boxes && box.boxes.length > 0) {
-                    const found = findBoxById(box.boxes, targetId);
-                    if (found) return found;
-                }
+                const found = findBoxById(box.boxes || [], targetId);
+                if (found) return found;
             }
             return null;
         }
         
         // Helper function to check if a box contains another box as a descendant
         function boxContainsDescendant(box, targetId) {
-            if (box.boxes && box.boxes.length > 0) {
-                for (const childBox of box.boxes) {
-                    if (childBox.id === targetId) return true;
-                    if (boxContainsDescendant(childBox, targetId)) return true;
-                }
+            for (const childBox of box.boxes || []) {
+                if (childBox.id === targetId) return true;
+                if (boxContainsDescendant(childBox, targetId)) return true;
             }
             return false;
         }
@@ -1069,9 +1065,7 @@ async function populateBoxDropdown() {
                     // Recursively add nested boxes
                     // Note: If a box is excluded, its descendants are implicitly excluded too,
                     // which is correct behavior (all descendants of excluded box are also invalid parents)
-                    if (box.boxes && box.boxes.length > 0) {
-                        addBoxOptions(box.boxes, level + 1);
-                    }
+                    addBoxOptions(box.boxes || [], level + 1);
                 }
             });
         }

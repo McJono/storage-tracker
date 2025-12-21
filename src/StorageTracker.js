@@ -200,7 +200,7 @@ class StorageTracker {
     this.deleteBox(boxId);
 
     // Add to new location
-    if (newParentBoxId && newParent) {
+    if (newParent) {
       newParent.addBox(box);
     } else {
       this.rootBoxes.push(box);
