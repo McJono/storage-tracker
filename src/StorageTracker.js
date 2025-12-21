@@ -182,9 +182,10 @@ class StorageTracker {
       throw new Error(`Box with ID ${boxId} not found`);
     }
 
+    let newParent = null;
     // Check if trying to move to a new parent
     if (newParentBoxId) {
-      const newParent = this.findBox(newParentBoxId);
+      newParent = this.findBox(newParentBoxId);
       if (!newParent) {
         throw new Error(`New parent box with ID ${newParentBoxId} not found`);
       }
@@ -199,11 +200,7 @@ class StorageTracker {
     this.deleteBox(boxId);
 
     // Add to new location
-    if (newParentBoxId) {
-      const newParent = this.findBox(newParentBoxId);
-      if (!newParent) {
-        throw new Error(`New parent box with ID ${newParentBoxId} not found`);
-      }
+    if (newParentBoxId && newParent) {
       newParent.addBox(box);
     } else {
       this.rootBoxes.push(box);

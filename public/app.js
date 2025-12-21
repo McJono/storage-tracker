@@ -1066,6 +1066,9 @@ async function populateBoxDropdown() {
                 if (!isCurrentBox && !isDescendant) {
                     const indent = '  '.repeat(level);
                     select.innerHTML += `<option value="${box.id}">${indent}${box.name}</option>`;
+                    // Recursively add nested boxes
+                    // Note: If a box is excluded, its descendants are implicitly excluded too,
+                    // which is correct behavior (all descendants of excluded box are also invalid parents)
                     if (box.boxes && box.boxes.length > 0) {
                         addBoxOptions(box.boxes, level + 1);
                     }
